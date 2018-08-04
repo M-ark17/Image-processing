@@ -4,6 +4,7 @@ import sys
 import PyQt4
 from PyQt4 import QtGui, QtCore
 
+
 class Window(QtGui.QMainWindow):
 
     def __init__(self):
@@ -11,9 +12,13 @@ class Window(QtGui.QMainWindow):
         self.setGeometry(50,50,1400,650)
         self.setWindowTitle("Basic Image Editor")
         self.home()
+        self.__pixmap = None
+        self.__mdfd_pxmp_lstchng = None
+        self.__mdfd_pxmp = None
 
     def home(self):
         btn = QtGui.QPushButton("Upload Image",self)
+        # image = btn.clicked.connect(self.file_open)
         btn.clicked.connect(self.file_open)
         btn.resize(200,40)
         btn.move(500,50 )
@@ -64,18 +69,35 @@ class Window(QtGui.QMainWindow):
 
     def file_open(self):
         name = QtGui.QFileDialog.getOpenFileName(self,'Open File','','Images (*.png *.xpm *.jpg *.jpeg)')
-        file = open(name,'r')
-        # with file:
+        upld_img = QtGui.QImage()
+        if upld_img.load(name):
+            print("Selected Image uploaded")
+            lbl1 = QtGui.QLabel(self)
+            lbl1.setText("Orignal Image")
+            lbl1.move(200,50)
+            lbl1.show()
+            pixmap = QtGui.QPixmap(upld_img)
+            self.__pixmap = pixmap.scaled(400, 650, QtCore.Qt.KeepAspectRatio)
+            lbl = QtGui.QLabel(self)
+            lbl.resize(400,650)
+            lbl.move(50,0)
+            lbl.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
+            lbl.setScaledContents(False)
+            lbl.setPixmap(self.__pixmap)
+            lbl.show()
+        else:
+            print("Could not upload Image")
 
     def save_image(self):
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','Images (*.png *.xpm *.jpg *.jpeg)')
-        file = open(name,'w')
-        file.close()
+        if self.__pixmap.save(name):
+            print("Image Saved To file")
+        else:
+            print("Could not save the Image to folder")
 
     def win_close(self):
         print("Window closed")
         sys.exit()
-
 
 def main():
     app = QtGui.QApplication(sys.argv)
