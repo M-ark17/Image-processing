@@ -2,9 +2,15 @@
 
 import sys
 import PyQt4
+import numpy as np
+import cv2 as cv
 from PyQt4 import QtGui, QtCore
 
-
+raw_img = None
+# get image properties.
+raw_img_heght = None
+raw_img_wdt = None
+raw_img_bpp = None
 class Window(QtGui.QMainWindow):
 
     def __init__(self):
@@ -63,15 +69,18 @@ class Window(QtGui.QMainWindow):
         btn10.clicked.connect(self.win_close)
         btn10.resize(200,40)
         btn10.move(500,550 )
-
-
         self.show()
 
     def file_open(self):
         name = QtGui.QFileDialog.getOpenFileName(self,'Open File','','Images (*.png *.xpm *.jpg *.jpeg)')
         upld_img = QtGui.QImage()
+        raw_img =  cv.imread(str(name))
+        raw_img_heght,raw_img_wdt,raw_img_bpp = raw_img.shape
+        img_hsv = cv.cvtColor(raw_img, cv.COLOR_BGR2HSV)
+        # get image properties.
+        print (img_hsv)
+        # print (raw_img)
         if upld_img.load(name):
-            print("Selected Image uploaded")
             lbl1 = QtGui.QLabel(self)
             lbl1.setText("Orignal Image")
             lbl1.move(200,50)
@@ -85,6 +94,8 @@ class Window(QtGui.QMainWindow):
             lbl.setScaledContents(False)
             lbl.setPixmap(self.__pixmap)
             lbl.show()
+            print("Selected Image uploaded")
+
         else:
             print("Could not upload Image")
 
