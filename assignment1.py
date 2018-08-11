@@ -2,15 +2,11 @@
 
 import sys
 import PyQt4
+import math
 import numpy as np
 import cv2 as cv
 from PyQt4 import QtGui, QtCore
 
-raw_img = None
-# get image properties.
-raw_img_heght = None
-raw_img_wdt = None
-raw_img_bpp = None
 class Window(QtGui.QMainWindow):
 
     def __init__(self):
@@ -19,8 +15,17 @@ class Window(QtGui.QMainWindow):
         self.setWindowTitle("Basic Image Editor")
         self.home()
         self.__pixmap = None
-        self.__mdfd_pxmp_lstchng = None
-        self.__mdfd_pxmp = None
+        self.__mdfd_img_lstchg = None
+        self.__mdfd_img = None
+        self.__img_h = None
+        self.__img_s = None
+        self.__img_v = None
+        self.__img_height = None
+        self.__img_width = None
+        self.lbl = QtGui.QLabel(self)
+        self.lbl1 = QtGui.QLabel(self)
+        self.lbl2 = QtGui.QLabel(self)
+        self.lbl3 = QtGui.QLabel(self)
 
     def home(self):
         btn = QtGui.QPushButton("Upload Image",self)
@@ -29,20 +34,20 @@ class Window(QtGui.QMainWindow):
         btn.resize(200,40)
         btn.move(500,50 )
         btn1 = QtGui.QPushButton("Equalize histogram",self)
-        btn1.clicked.connect(self.save_image)
+        btn1.clicked.connect(self.hist_equal)
         btn1.resize(200,40)
         btn1.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         btn1.move(500,100 )
         btn2 = QtGui.QPushButton("Gamma correct",self)
-        btn2.clicked.connect(self.win_close)
+        btn2.clicked.connect(self.gamma_correct_btn)
         btn2.resize(200,40)
         btn2.move(500,150 )
         btn3 = QtGui.QPushButton("Log transform",self)
-        btn3.clicked.connect(self.win_close)
+        btn3.clicked.connect(self.log_transform)
         btn3.resize(200,40)
         btn3.move(500,200 )
         btn4 = QtGui.QPushButton("Blur Image",self)
-        btn4.clicked.connect(self.win_close)
+        btn4.clicked.connect(self.blur_img)
         btn4.resize(200,40)
         btn4.move(500,250 )
         btn5 = QtGui.QPushButton("Sharpening",self)
@@ -54,11 +59,11 @@ class Window(QtGui.QMainWindow):
         btn6.resize(200,40)
         btn6.move(500,350 )
         btn7 = QtGui.QPushButton("Undo last Change",self)
-        btn7.clicked.connect(self.save_image)
+        btn7.clicked.connect(self.undo)
         btn7.resize(200,40)
         btn7.move(500,400 )
         btn8 = QtGui.QPushButton("Undo All Changes",self)
-        btn8.clicked.connect(self.save_image)
+        btn8.clicked.connect(self.undoall)
         btn8.resize(200,40)
         btn8.move(500,450 )
         btn9 = QtGui.QPushButton("Save Image",self)
@@ -74,34 +79,112 @@ class Window(QtGui.QMainWindow):
     def file_open(self):
         name = QtGui.QFileDialog.getOpenFileName(self,'Open File','','Images (*.png *.xpm *.jpg *.jpeg)')
         upld_img = QtGui.QImage()
-        raw_img =  cv.imread(str(name))
-        raw_img_heght,raw_img_wdt,raw_img_bpp = raw_img.shape
-        img_hsv = cv.cvtColor(raw_img, cv.COLOR_BGR2HSV)
+        self.__ip_img =  cv.imread(str(name),cv.IMREAD_COLOR)
+        img_hsv = cv.cvtColor(self.__ip_img, cv.COLOR_RGB2HSV)
         # get image properties.
-        print (img_hsv)
-        # print (raw_img)
+        self.__img_h,self.__img_s,self.__img_v = cv.split(img_hsv)
+        self.__img_height,self.__img_width = self.__img_v.shape
+        self.__mdfd_img_lstchg = self.__img_v
+        self.__mdfd_img = self.__img_v
         if upld_img.load(name):
-            lbl1 = QtGui.QLabel(self)
-            lbl1.setText("Orignal Image")
-            lbl1.move(200,50)
-            lbl1.show()
+            self.lbl1.clear()
+            self.lbl1.show()
+            self.lbl1.setText("Orignal Image")
+            self.lbl1.move(200,50)
+            self.lbl1.show()
             pixmap = QtGui.QPixmap(upld_img)
             self.__pixmap = pixmap.scaled(400, 650, QtCore.Qt.KeepAspectRatio)
-            lbl = QtGui.QLabel(self)
-            lbl.resize(400,650)
-            lbl.move(50,0)
-            lbl.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
-            lbl.setScaledContents(False)
-            lbl.setPixmap(self.__pixmap)
-            lbl.show()
+            self.lbl.clear()
+            self.lbl.show()
+            self.lbl.resize(400,650)
+            self.lbl.move(50,0)
+            self.lbl.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
+            self.lbl.setScaledContents(False)
+            self.lbl.setPixmap(self.__pixmap)
+            self.lbl.show()
             print("Selected Image uploaded")
 
         else:
             print("Could not upload Image")
 
+    def hist_equal(self):
+        self.__mdfd_img_lstchg = self.__mdfd_img
+        p = []
+        sum = 0
+        hist_equal_img = self.__mdfd_img
+        for i in range (0,hist_equal_img.max()+1):
+            idx = (hist_equal_img == i)
+            i_intnsty_freq = hist_equal_img[idx].size
+            p.append(i_intnsty_freq)
+            sum = sum +i_intnsty_freq
+            new_intnsty = np.uint8(((float(self.__img_v.max())/float(self.__mdfd_img.size)))*sum)
+            # print i,sum,self.__img_v.size,i_intnsty_freq,new_intnsty
+            hist_equal_img[idx] = new_intnsty
+        self.__mdfd_img = hist_equal_img
+        self.disp("Histogram Equalization")
+        print("Histogram Equalized")
+
+    def gamma_correct_btn(self):
+        gamma,ok = QtGui.QInputDialog.getDouble(self,"integer input dialog","enter a number")
+        if ok:
+            print 'Gamma value = '+str(gamma)
+            self.gamma_correct(gamma)
+        else:
+            print("No input gamma value given")
+
+    def gamma_correct(self,gamma):
+        self.__mdfd_img_lstchg = self.__mdfd_img
+        gamma_correct_img = self.__mdfd_img
+        c = 1/(10**gamma)
+        for i in range (0,gamma_correct_img.max()+1):
+            idx = (gamma_correct_img == i)
+            new_intnsty = c*(float(i)**gamma)
+            gamma_correct_img[idx] = int(new_intnsty)
+            # print(new_intnsty)
+        self.__mdfd_img = gamma_correct_img
+        self.disp("Gamma transformation")
+        print("Gamma transformation Applied")
+
+    def log_transform(self):
+        self.__mdfd_img_lstchg = self.__mdfd_img
+        log_trnsfrm_img = self.__mdfd_img
+        c = 100
+        for i in range (0,log_trnsfrm_img.max()+1):
+            idx = (log_trnsfrm_img == i)
+            new_intnsty = c*(math.log10(i+1))
+            log_trnsfrm_img[idx] = new_intnsty
+            # print(new_intnsty)
+        self.__mdfd_img = log_trnsfrm_img
+        self.disp("Log transformation")
+        print("Log transformation Applied")
+
+    def blur_img(self):
+        print("image blurred")
+        # sp = QtGui.QSpinBox()
+        # sp.show()
+        self.s1 = QtGui.QScrollBar()
+        self.s1.resize(20,400)
+        self.s1.move(1330,150)
+        self.s1.setMaximum(255)
+        self.s1.setMinimum(0)
+        self.s1.show()
+
+    def undoall(self):
+        self.__mdfd_img = self.__img_v
+        # self.__mdfd_img_lstchg = self.__img_v
+        self.disp("All changes undone")
+        print("All changes UNDONE ")
+
+    def undo(self):
+        self.__mdfd_img = self.__mdfd_img_lstchg
+        self.disp("Last change undone")
+        print("Last change UNDONE ")
+
     def save_image(self):
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','Images (*.png *.xpm *.jpg *.jpeg)')
-        if self.__pixmap.save(name):
+        itos = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img])
+        img_to_save = QtGui.QPixmap(QtGui.QImage(itos,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888))
+        if img_to_save.save(name):
             print("Image Saved To file")
         else:
             print("Could not save the Image to folder")
@@ -110,8 +193,27 @@ class Window(QtGui.QMainWindow):
         print("Window closed")
         sys.exit()
 
+    def disp(self,txt):
+        img_pix1 = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img_lstchg])
+        img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB)
+        pix_img = QtGui.QPixmap(QtGui.QImage(img_color,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888))
+        self.lbl2.clear()
+        self.lbl2.setText(txt)
+        self.lbl2.resize(200,50)
+        self.lbl2.move(950,50)
+        self.lbl2.show()
+        pix_img= pix_img.scaled(400, 650, QtCore.Qt.KeepAspectRatio)
+        self.lbl3.clear()
+        self.lbl3.resize(400,650)
+        self.lbl3.move(800,0)
+        self.lbl3.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
+        self.lbl3.setScaledContents(False)
+        self.lbl3.setPixmap(pix_img)
+        self.lbl3.show()
+
 def main():
     app = QtGui.QApplication(sys.argv)
     GUI = Window()
+    # GUI.disp()
     sys.exit(app.exec_())
 main()

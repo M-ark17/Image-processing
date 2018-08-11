@@ -1,0 +1,11 @@
+https://docs.scipy.org/doc/numpy-1.10.0/reference/generated/numpy.matrix.max.html
+https://www.geeksforgeeks.org/array-python-set-1-introduction-functions/
+https://ags.cs.uni-kl.de/fileadmin/inf_ags/2dip-ss18/ImageProcessingOpencv.pdf
+https://docs.opencv.org/3.1.0/d5/daf/tutorial_py_histogram_equalization.html
+https://stackoverflow.com/questions/31998428/opencv-python-equalizehist-colored-image
+https://www.dfstudios.co.uk/articles/programming/image-programming-algorithms/image-processing-algorithms-part-3-greyscale-conversion/
+http://marvinproject.sourceforge.net/en/plugins/histogramEqualization.html
+http://nullege.com/codes/search/PyQt4.QtGui.QLabel.clear
+https://stackoverflow.com/questions/34520919/remove-an-image-in-qlabel-after-button-clicked
+https://www.tutorialspoint.com/pyqt/pyqt_qinputdialog_widget.html
+http://zetcode.com/gui/pyqt4/layoutmanagement/
