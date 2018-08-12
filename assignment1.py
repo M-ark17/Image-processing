@@ -26,6 +26,10 @@ class Window(QtGui.QMainWindow):
         self.lbl1 = QtGui.QLabel(self)
         self.lbl2 = QtGui.QLabel(self)
         self.lbl3 = QtGui.QLabel(self)
+        self.lbl_s1 = QtGui.QLabel(self)
+        self.lbl_s2 = QtGui.QLabel(self)
+        self.s1 = QtGui.QScrollBar(self)
+        self.s2 = QtGui.QScrollBar(self)
 
     def home(self):
         btn = QtGui.QPushButton("Upload Image",self)
@@ -47,11 +51,11 @@ class Window(QtGui.QMainWindow):
         btn3.resize(200,40)
         btn3.move(500,200 )
         btn4 = QtGui.QPushButton("Blur Image",self)
-        btn4.clicked.connect(self.blur_img)
+        btn4.clicked.connect(self.blur_img_scr_bar)
         btn4.resize(200,40)
         btn4.move(500,250 )
         btn5 = QtGui.QPushButton("Sharpening",self)
-        btn5.clicked.connect(self.win_close)
+        btn5.clicked.connect(self.sharpen_img_scr_bar)
         btn5.resize(200,40)
         btn5.move(500,300 )
         btn6 = QtGui.QPushButton("Additional Feature",self)
@@ -80,10 +84,11 @@ class Window(QtGui.QMainWindow):
         name = QtGui.QFileDialog.getOpenFileName(self,'Open File','','Images (*.png *.xpm *.jpg *.jpeg)')
         upld_img = QtGui.QImage()
         self.__ip_img =  cv.imread(str(name),cv.IMREAD_COLOR)
-        img_hsv = cv.cvtColor(self.__ip_img, cv.COLOR_RGB2HSV)
+        img_hsv = cv.cvtColor(self.__ip_img, cv.COLOR_BGR2HSV)
         # get image properties.
         self.__img_h,self.__img_s,self.__img_v = cv.split(img_hsv)
         self.__img_height,self.__img_width = self.__img_v.shape
+        # print self.__img_v.shape
         self.__mdfd_img_lstchg = self.__img_v
         self.__mdfd_img = self.__img_v
         if upld_img.load(name):
@@ -117,11 +122,12 @@ class Window(QtGui.QMainWindow):
             i_intnsty_freq = hist_equal_img[idx].size
             p.append(i_intnsty_freq)
             sum = sum +i_intnsty_freq
-            new_intnsty = np.uint8(((float(self.__img_v.max())/float(self.__mdfd_img.size)))*sum)
+            new_intnsty = np.uint8(((float(hist_equal_img.max())/float(hist_equal_img.size)))*sum)
             # print i,sum,self.__img_v.size,i_intnsty_freq,new_intnsty
             hist_equal_img[idx] = new_intnsty
         self.__mdfd_img = hist_equal_img
         self.disp("Histogram Equalization")
+        # print("Histogram Equalized",self.__mdfd_img_lstchg-self.__mdfd_img,self.__mdfd_img-self.__img_v)
         print("Histogram Equalized")
 
     def gamma_correct_btn(self):
@@ -135,7 +141,7 @@ class Window(QtGui.QMainWindow):
     def gamma_correct(self,gamma):
         self.__mdfd_img_lstchg = self.__mdfd_img
         gamma_correct_img = self.__mdfd_img
-        c = 1/(10**gamma)
+        c = 1
         for i in range (0,gamma_correct_img.max()+1):
             idx = (gamma_correct_img == i)
             new_intnsty = c*(float(i)**gamma)
@@ -143,7 +149,7 @@ class Window(QtGui.QMainWindow):
             # print(new_intnsty)
         self.__mdfd_img = gamma_correct_img
         self.disp("Gamma transformation")
-        print("Gamma transformation Applied")
+        print("Gamma transformation Applied",)
 
     def log_transform(self):
         self.__mdfd_img_lstchg = self.__mdfd_img
@@ -151,23 +157,53 @@ class Window(QtGui.QMainWindow):
         c = 100
         for i in range (0,log_trnsfrm_img.max()+1):
             idx = (log_trnsfrm_img == i)
-            new_intnsty = c*(math.log10(i+1))
+            new_intnsty = float(c*(math.log10(i+1)))
             log_trnsfrm_img[idx] = new_intnsty
-            # print(new_intnsty)
+            # print float(new_intnsty)
         self.__mdfd_img = log_trnsfrm_img
         self.disp("Log transformation")
         print("Log transformation Applied")
 
-    def blur_img(self):
-        print("image blurred")
-        # sp = QtGui.QSpinBox()
-        # sp.show()
-        self.s1 = QtGui.QScrollBar()
+    def blur_img_scr_bar(self):
+
         self.s1.resize(20,400)
-        self.s1.move(1330,150)
+        self.s1.move(1330,100)
         self.s1.setMaximum(255)
         self.s1.setMinimum(0)
         self.s1.show()
+        self.lbl_s1.resize(30,50)
+        self.lbl_s1.setText("Low")
+        self.lbl_s1.move(1320,500)
+        self.lbl_s1.show()
+        self.lbl_s2.resize(30,50)
+        self.lbl_s2.setText("High")
+        self.lbl_s2.move(1320,50)
+        self.lbl_s2.show()
+        self.s1.valueChanged.connect(self.blur_img)
+
+    def blur_img(self):
+        print("image blurred")
+
+    def sharpen_img_scr_bar(self):
+
+        self.s2.resize(20,400)
+        self.s2.move(1330,100)
+        self.s2.setMaximum(255)
+        self.s2.setMinimum(0)
+        self.s2.show()
+        self.lbl_s1.resize(30,50)
+        self.lbl_s1.setText("Low")
+        self.lbl_s1.move(1320,500)
+        self.lbl_s1.show()
+        self.lbl_s2.resize(30,50)
+        self.lbl_s2.setText("High")
+        self.lbl_s2.move(1320,50)
+        self.lbl_s1.show()
+        self.lbl_s2.show()
+        self.s2.valueChanged.connect(self.sharpen_img)
+
+    def sharpen_img(self):
+        print("Image Sharpening Done")
 
     def undoall(self):
         self.__mdfd_img = self.__img_v
@@ -193,8 +229,14 @@ class Window(QtGui.QMainWindow):
         print("Window closed")
         sys.exit()
 
-    def disp(self,txt):
-        img_pix1 = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img_lstchg])
+    def disp(self,txt,flag = 0):
+        if (flag == 0):
+            self.lbl_s1.clear()
+            self.lbl_s2.clear()
+            self.s1.hide()
+            self.s2.hide()
+
+        img_pix1 = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img])
         img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB)
         pix_img = QtGui.QPixmap(QtGui.QImage(img_color,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888))
         self.lbl2.clear()
