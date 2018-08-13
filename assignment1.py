@@ -114,20 +114,19 @@ class Window(QtGui.QMainWindow):
 
     def hist_equal(self):
         self.__mdfd_img_lstchg = self.__mdfd_img
-        p = []
         sum = 0
         hist_equal_img = self.__mdfd_img
-        for i in range (0,hist_equal_img.max()+1):
-            idx = (hist_equal_img == i)
-            i_intnsty_freq = hist_equal_img[idx].size
-            p.append(i_intnsty_freq)
+        new_img=np.empty_like(hist_equal_img)
+        print(np.max(hist_equal_img))
+        for i in range (256):
+            idx = np.where(hist_equal_img == i)
+            i_intnsty_freq = len(idx[0])
             sum = sum +i_intnsty_freq
-            new_intnsty = np.uint8(((float(hist_equal_img.max())/float(hist_equal_img.size)))*sum)
-            # print i,sum,self.__img_v.size,i_intnsty_freq,new_intnsty
-            hist_equal_img[idx] = new_intnsty
-        self.__mdfd_img = hist_equal_img
+            new_intnsty = (float(sum)/hist_equal_img.size)*255.0
+            print new_intnsty
+            new_img[idx] = new_intnsty
+        self.__mdfd_img = new_img
         self.disp("Histogram Equalization")
-        # print("Histogram Equalized",self.__mdfd_img_lstchg-self.__mdfd_img,self.__mdfd_img-self.__img_v)
         print("Histogram Equalized")
 
     def gamma_correct_btn(self):
