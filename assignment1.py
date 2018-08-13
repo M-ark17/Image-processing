@@ -117,13 +117,13 @@ class Window(QtGui.QMainWindow):
         sum = 0
         hist_equal_img = self.__mdfd_img
         new_img=np.empty_like(hist_equal_img)
-        print(np.max(hist_equal_img))
+        # print(np.max(hist_equal_img))
         for i in range (256):
             idx = np.where(hist_equal_img == i)
             i_intnsty_freq = len(idx[0])
             sum = sum +i_intnsty_freq
             new_intnsty = (float(sum)/hist_equal_img.size)*255.0
-            print new_intnsty
+            # print new_intnsty
             new_img[idx] = new_intnsty
         self.__mdfd_img = new_img
         self.disp("Histogram Equalization")
@@ -140,25 +140,27 @@ class Window(QtGui.QMainWindow):
     def gamma_correct(self,gamma):
         self.__mdfd_img_lstchg = self.__mdfd_img
         gamma_correct_img = self.__mdfd_img
+        new_img=np.empty_like(gamma_correct_img)
         c = 1
-        for i in range (0,gamma_correct_img.max()+1):
+        for i in range (256):
             idx = (gamma_correct_img == i)
             new_intnsty = c*(float(i)**gamma)
-            gamma_correct_img[idx] = int(new_intnsty)
-            # print(new_intnsty)
+            new_img[idx] = int(new_intnsty)
+        gamma_correct_img = new_img
         self.__mdfd_img = gamma_correct_img
         self.disp("Gamma transformation")
-        print("Gamma transformation Applied",)
+        print("Gamma transformation Applied")
 
     def log_transform(self):
         self.__mdfd_img_lstchg = self.__mdfd_img
         log_trnsfrm_img = self.__mdfd_img
+        new_img = np.empty_like(log_trnsfrm_img)
         c = 100
-        for i in range (0,log_trnsfrm_img.max()+1):
+        for i in range (256):
             idx = (log_trnsfrm_img == i)
             new_intnsty = float(c*(math.log10(i+1)))
-            log_trnsfrm_img[idx] = new_intnsty
-            # print float(new_intnsty)
+            new_img[idx] = new_intnsty
+        log_trnsfrm_img = new_img
         self.__mdfd_img = log_trnsfrm_img
         self.disp("Log transformation")
         print("Log transformation Applied")
