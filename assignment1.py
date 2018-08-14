@@ -6,6 +6,9 @@ import math
 import numpy as np
 import cv2 as cv
 from PyQt4 import QtGui, QtCore
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
+from PyQt4.QtCore import pyqtSlot,SIGNAL,SLOT
 
 class Window(QtGui.QMainWindow):
 
@@ -140,13 +143,13 @@ class Window(QtGui.QMainWindow):
     def gamma_correct(self,gamma):
         self.__mdfd_img_lstchg = self.__mdfd_img
         gamma_correct_img = self.__mdfd_img
-        new_img=np.empty_like(gamma_correct_img)
+        new_img_2=np.empty_like(gamma_correct_img)
         c = 1
         for i in range (256):
             idx = (gamma_correct_img == i)
             new_intnsty = c*(float(i)**gamma)
-            new_img[idx] = int(new_intnsty)
-        gamma_correct_img = new_img
+            new_img_2[idx] = int(new_intnsty)
+        gamma_correct_img = new_img_2
         self.__mdfd_img = gamma_correct_img
         self.disp("Gamma transformation")
         print("Gamma transformation Applied")
@@ -154,57 +157,113 @@ class Window(QtGui.QMainWindow):
     def log_transform(self):
         self.__mdfd_img_lstchg = self.__mdfd_img
         log_trnsfrm_img = self.__mdfd_img
-        new_img = np.empty_like(log_trnsfrm_img)
+        new_img_3 = np.empty_like(log_trnsfrm_img)
         c = 100
         for i in range (256):
             idx = (log_trnsfrm_img == i)
             new_intnsty = float(c*(math.log10(i+1)))
-            new_img[idx] = new_intnsty
-        log_trnsfrm_img = new_img
+            new_img_3[idx] = new_intnsty
+        log_trnsfrm_img = new_img_3
         self.__mdfd_img = log_trnsfrm_img
         self.disp("Log transformation")
         print("Log transformation Applied")
 
     def blur_img_scr_bar(self):
-
         self.s1.resize(20,400)
         self.s1.move(1330,100)
-        self.s1.setMaximum(255)
-        self.s1.setMinimum(0)
+        self.s1.setMaximum(10.0)
+        self.s1.setMinimum(1)
         self.s1.show()
         self.lbl_s1.resize(30,50)
-        self.lbl_s1.setText("Low")
+        self.lbl_s1.setText("High")
         self.lbl_s1.move(1320,500)
         self.lbl_s1.show()
         self.lbl_s2.resize(30,50)
-        self.lbl_s2.setText("High")
+        self.lbl_s2.setText("Low")
         self.lbl_s2.move(1320,50)
         self.lbl_s2.show()
+        self.__mdfd_img_lstchg = self.__mdfd_img
         self.s1.valueChanged.connect(self.blur_img)
 
     def blur_img(self):
-        print("image blurred")
+        sigma = self.s1.value()
+        x_count = -1
+        y_count = -1
+        filter = np.zeros((3,3), dtype=np.float)
+        blur_img = self.__mdfd_img
+        padd_blur_img = np.insert(blur_img,[0],0,axis = 0)
+        padd_blur_img = np.insert(padd_blur_img,[self.__img_height+1],0,axis = 0)
+        padd_blur_img = np.insert(padd_blur_img,[0],0,axis = 1)
+        padd_blur_img = np.insert(padd_blur_img,[self.__img_width+1],0,axis = 1)
+        new_img_4 = np.empty_like(blur_img)
+
+        # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
+        for x in range(-1,1):
+            x_count+=1
+            y_count = -1
+            for y in range(-1,1):
+                y_count+=1
+                filter[x_count,y_count] = math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))
+        neighbourhood = np.zeros((3,3))
+        for j in range(1,self.__img_height+1):
+            for k in range(1,self.__img_width+1):
+                neighbourhood[0,:] = padd_blur_img[j-1][k-1:k+2]
+                neighbourhood[1,:] = padd_blur_img[j-1][k-1:k+2]
+                neighbourhood[2,:] = padd_blur_img[j-1][k-1:k+2]
+                new_img_4[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
+                print(j ,k)
+        self.__mdfd_img = new_img_4
+        self.disp("Blurred Image",1)
+        print("Image Blurred")
 
     def sharpen_img_scr_bar(self):
 
         self.s2.resize(20,400)
         self.s2.move(1330,100)
-        self.s2.setMaximum(255)
-        self.s2.setMinimum(0)
+        self.s2.setMaximum(10)
+        self.s2.setMinimum(1)
         self.s2.show()
         self.lbl_s1.resize(30,50)
-        self.lbl_s1.setText("Low")
+        self.lbl_s1.setText("High")
         self.lbl_s1.move(1320,500)
         self.lbl_s1.show()
         self.lbl_s2.resize(30,50)
-        self.lbl_s2.setText("High")
+        self.lbl_s2.setText("Low")
         self.lbl_s2.move(1320,50)
         self.lbl_s1.show()
         self.lbl_s2.show()
         self.s2.valueChanged.connect(self.sharpen_img)
 
     def sharpen_img(self):
-        print("Image Sharpening Done")
+        sigma = self.s2.value()
+        x_count = -1
+        y_count = -1
+        filter = np.zeros((3,3), dtype=np.float)
+        sharp_img = self.__mdfd_img
+        padd_sharp_img = np.insert(sharp_img,[0],0,axis = 0)
+        padd_sharp_img = np.insert(padd_sharp_img,[self.__img_height+1],0,axis = 0)
+        padd_sharp_img = np.insert(padd_sharp_img,[0],0,axis = 1)
+        padd_sharp_img = np.insert(padd_sharp_img,[self.__img_width+1],0,axis = 1)
+        new_img_5 = np.empty_like(sharp_img)
+
+        # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
+        for x in range(-1,1):
+            x_count+=1
+            y_count = -1
+            for y in range(-1,1):
+                y_count+=1
+                filter[x_count,y_count] = -(1.0-(x**2.0+y**2.0)/(2.0*sigma*sigma))*math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))
+        neighbourhood = np.zeros((3,3))
+        for j in range(1,self.__img_height+1):
+            for k in range(1,self.__img_width+1):
+                neighbourhood[0,:] = padd_sharp_img[j-1][k-1:k+2]
+                neighbourhood[1,:] = padd_sharp_img[j-1][k-1:k+2]
+                neighbourhood[2,:] = padd_sharp_img[j-1][k-1:k+2]
+                new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
+                print(j ,k)
+        self.__mdfd_img = new_img_5
+        self.disp("Sharpened Image",1)
+        print("Image Sharpened")
 
     def undoall(self):
         self.__mdfd_img = self.__img_v
