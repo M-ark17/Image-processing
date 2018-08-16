@@ -34,6 +34,7 @@ class Window(QtGui.QMainWindow):
         self.s1 = QtGui.QScrollBar(self)
         self.s2 = QtGui.QScrollBar(self)
 
+
     def home(self):
         btn = QtGui.QPushButton("Upload Image",self)
         # image = btn.clicked.connect(self.file_open)
@@ -111,7 +112,8 @@ class Window(QtGui.QMainWindow):
             self.lbl.setPixmap(self.__pixmap)
             self.lbl.show()
             print("Selected Image uploaded")
-
+            self.dialog = QProgressDialog('In progress please wait...','Cancel', 0, self.__img_v.size, self)
+            self.dialog.setWindowModality(Qt.WindowModal)
         else:
             print("Could not upload Image")
 
@@ -182,10 +184,10 @@ class Window(QtGui.QMainWindow):
         self.lbl_s2.setText("Low")
         self.lbl_s2.move(1320,50)
         self.lbl_s2.show()
-        self.__mdfd_img_lstchg = self.__mdfd_img
         self.s1.valueChanged.connect(self.blur_img)
 
     def blur_img(self):
+        self.__mdfd_img_lstchg = self.__mdfd_img
         sigma = self.s1.value()
         x_count = -1
         y_count = -1
@@ -205,19 +207,22 @@ class Window(QtGui.QMainWindow):
                 y_count+=1
                 filter[x_count,y_count] = math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))
         neighbourhood = np.zeros((3,3))
+        progress = 0
+        self.dialog.forceShow()
         for j in range(1,self.__img_height+1):
             for k in range(1,self.__img_width+1):
                 neighbourhood[0,:] = padd_blur_img[j-1][k-1:k+2]
                 neighbourhood[1,:] = padd_blur_img[j-1][k-1:k+2]
                 neighbourhood[2,:] = padd_blur_img[j-1][k-1:k+2]
                 new_img_4[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
-                print(j ,k)
+                # print(j ,k)
+                progress = progress + 1
+                self.dialog.setValue(progress)
         self.__mdfd_img = new_img_4
         self.disp("Blurred Image",1)
         print("Image Blurred")
 
     def sharpen_img_scr_bar(self):
-
         self.s2.resize(20,400)
         self.s2.move(1330,100)
         self.s2.setMaximum(10)
@@ -232,12 +237,7 @@ class Window(QtGui.QMainWindow):
         self.lbl_s2.move(1320,50)
         self.lbl_s1.show()
         self.lbl_s2.show()
-        self.s2.valueChanged.connect(self.sharpen_img)
-
-    def sharpen_img(self):
-        sigma = self.s2.value()
-        x_count = -1
-        y_count = -1
+        self.__mdfd_img_lstchg = self.__mdfd_img
         filter = np.zeros((3,3), dtype=np.float)
         sharp_img = self.__mdfd_img
         padd_sharp_img = np.insert(sharp_img,[0],0,axis = 0)
@@ -247,21 +247,35 @@ class Window(QtGui.QMainWindow):
         new_img_5 = np.empty_like(sharp_img)
 
         # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
-        for x in range(-1,1):
-            x_count+=1
-            y_count = -1
-            for y in range(-1,1):
-                y_count+=1
-                filter[x_count,y_count] = -(1.0-(x**2.0+y**2.0)/(2.0*sigma*sigma))*math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))
+        # x_count = -1
+        # y_count = -1
+        # for x in range(-1,1):
+        #     x_count+=1
+        #     y_count = -1
+        #     for y in range(-1,1):
+        #         y_count+=1
+        #         filter[x_count,y_count] = -(1.0-(x**2.0+y**2.0)/(2.0*sigma*sigma))*math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))
+        filter = [[0.0,-1.0,0.0],[-1.0,4.0,-1.0],[0.0,-1.0,0.0]]
+        # print(len(filter),len(filter[0]))
         neighbourhood = np.zeros((3,3))
+        progress = 0
+        self.dialog.forceShow()
         for j in range(1,self.__img_height+1):
             for k in range(1,self.__img_width+1):
+                progress = progress+1
                 neighbourhood[0,:] = padd_sharp_img[j-1][k-1:k+2]
                 neighbourhood[1,:] = padd_sharp_img[j-1][k-1:k+2]
                 neighbourhood[2,:] = padd_sharp_img[j-1][k-1:k+2]
-                new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
-                print(j ,k)
-        self.__mdfd_img = new_img_5
+                # new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
+                new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)
+                self.dialog.setValue(progress)
+                # print(j ,k)
+        np.clip(new_img_5, 0,255, out=new_img_5)
+        self.s2.valueChanged.connect(lambda: self.sharpen_img(new_img_5))
+
+    def sharpen_img(self,new_img_5):
+        sigma = self.s2.value()
+        self.__mdfd_img = self.__img_v + sigma*new_img_5
         self.disp("Sharpened Image",1)
         print("Image Sharpened")
 
