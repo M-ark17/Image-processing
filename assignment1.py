@@ -218,6 +218,8 @@ class Window(QtGui.QMainWindow):
                 # print(j ,k)
                 progress = progress + 1
                 self.dialog.setValue(progress)
+                if(self.dialog.wasCanceled()):
+                    break
         self.__mdfd_img = new_img_4
         self.disp("Blurred Image",1)
         print("Image Blurred")
@@ -269,6 +271,8 @@ class Window(QtGui.QMainWindow):
                 # new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
                 new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)
                 self.dialog.setValue(progress)
+                if(self.dialog.wasCanceled()):
+                    break
                 # print(j ,k)
         np.clip(new_img_5, 0,255, out=new_img_5)
         self.s2.valueChanged.connect(lambda: self.sharpen_img(new_img_5))
@@ -293,6 +297,7 @@ class Window(QtGui.QMainWindow):
     def save_image(self):
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','Images (*.png *.xpm *.jpg *.jpeg)')
         itos = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img])
+        itos = cv.cvtColor(itos, cv.COLOR_HSV2RGB)
         img_to_save = QtGui.QPixmap(QtGui.QImage(itos,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888))
         if img_to_save.save(name):
             print("Image Saved To file")
@@ -316,12 +321,12 @@ class Window(QtGui.QMainWindow):
         self.lbl2.clear()
         self.lbl2.setText(txt)
         self.lbl2.resize(200,50)
-        self.lbl2.move(950,50)
+        self.lbl2.move(950,0)
         self.lbl2.show()
-        pix_img= pix_img.scaled(400, 650, QtCore.Qt.KeepAspectRatio)
+        pix_img= pix_img.scaled(600,600, QtCore.Qt.KeepAspectRatio)
         self.lbl3.clear()
-        self.lbl3.resize(400,650)
-        self.lbl3.move(800,0)
+        self.lbl3.resize(600,600)
+        self.lbl3.move(720,40)
         self.lbl3.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
         self.lbl3.setScaledContents(False)
         self.lbl3.setPixmap(pix_img)
