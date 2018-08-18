@@ -131,39 +131,37 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.disp("Histogram Equalization") # to display the changed image
         print("Histogram Equalized") # Print status to terminal or IDE
 
-    def gamma_correct_btn(self):
-        gamma,ok = QtGui.QInputDialog.getDouble(self,"integer input dialog","enter a number")
-        if ok:
+    def gamma_correct_btn(self): # method to ask for gamma value when gamma correct button is clicked
+        gamma,ok = QtGui.QInputDialog.getDouble(self,"integer input dialog","enter a number") # get the input from the user along with the status
+        if ok: # if the user inputs any value
             print 'Gamma value = '+str(gamma) # Print status to terminal or IDE
-            self.gamma_correct(gamma)
-        else:
+            self.gamma_correct(gamma) # call the gamma_correct method with the given gamma
+        else: # if user does not give any value
             print("No input gamma value given") # Print status to terminal or IDE
 
-    def gamma_correct(self,gamma):
+    def gamma_correct(self,gamma): #method to do gamma correction
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        gamma_correct_img = self.__mdfd_img
-        new_img_2=np.empty_like(gamma_correct_img)
-        c = 1
-        for i in range (256):
-            idx = (gamma_correct_img == i)
-            new_intnsty = c*(float(i)**gamma)
-            new_img_2[idx] = int(new_intnsty)
-        gamma_correct_img = new_img_2
-        self.__mdfd_img = gamma_correct_img
+        gamma_correct_img = self.__mdfd_img # store the image data to temporary array
+        new_img_2=np.empty_like(gamma_correct_img) # create a temporary array to store calculated values
+        c = 1 # let c be 1
+        for i in range (256): # for each intensity value
+            idx = (gamma_correct_img == i) #get the indexes with the same intensity values
+            new_intnsty = c*(float(i)**gamma) # apply gamma transform on each intensity level
+            new_img_2[idx] = int(new_intnsty) # store the values in temporary array
+        self.__mdfd_img = new_img_2 # save the gamma corrected image to global variable
         self.disp("Gamma transformation")# to display the changed image
         print("Gamma transformation Applied") # Print status to terminal or IDE
 
     def log_transform(self):
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        log_trnsfrm_img = self.__mdfd_img
-        new_img_3 = np.empty_like(log_trnsfrm_img)
-        c = 100
-        for i in range (256):
-            idx = (log_trnsfrm_img == i)
-            new_intnsty = float(c*(math.log10(i+1)))
-            new_img_3[idx] = new_intnsty
-        log_trnsfrm_img = new_img_3
-        self.__mdfd_img = log_trnsfrm_img
+        log_trnsfrm_img = self.__mdfd_img # temp array to do operations on
+        new_img_3 = np.empty_like(log_trnsfrm_img) # empty array to assign new intensity values
+        c = 100 # let c be 100
+        for i in range (256): # for each instensity value of the image
+            idx = (log_trnsfrm_img == i) # get the indexes with the same intensity levels
+            new_intnsty = float(c*(math.log10(i+1))) # apply log transformation
+            new_img_3[idx] = new_intnsty # assign the new intensity values to the temporary array
+        self.__mdfd_img = new_img_3 # store the modified data to the global variable
         self.disp("Log transformation")# to display the changed image
         print("Log transformation Applied") # Print status to terminal or IDE
 
@@ -231,7 +229,6 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.lbl_s2.resize(30,50)
         self.lbl_s2.setText("Low")
         self.lbl_s2.move(1320,50)
-        self.lbl_s1.show()
         self.lbl_s2.show()
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
         filter = np.zeros((3,3), dtype=np.float)
@@ -241,6 +238,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         padd_sharp_img = np.insert(padd_sharp_img,[0],0,axis = 1)
         padd_sharp_img = np.insert(padd_sharp_img,[self.__img_width+1],0,axis = 1)
         new_img_5 = np.empty_like(sharp_img)
+        new_img_5 *= 0
 
         # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
         # x_count = -1
@@ -251,31 +249,36 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         #     for y in range(-1,1):
         #         y_count+=1
         #         filter[x_count,y_count] = -(1.0-(x**2.0+y**2.0)/(2.0*sigma*sigma))*math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))
-        filter = [[-1.0,-1.0,-1.0],[-1.0,8.0,-1.0],[-1.0,-1.0,-1.0]]
+        filter = np.array([[-1.0,-1.0,-1.0],[-1.0,8.0,-1.0],[-1.0,-1.0,-1.0]])
+        # filter = [[-0.0,-0.0,-0.0],[-0.0,1.0,-0.0],[-0.0,-0.0,-0.0]]
         # print(len(filter),len(filter[0]))
         neighbourhood = np.zeros((3,3))
         progress = 0
         self.dialog.forceShow()
+        # print(padd_sharp_img[padd_sharp_img==np.max(padd_sharp_img)])
+        print(np.max(padd_sharp_img),np.max(self.__mdfd_img),np.max(self.__img_v))
         for j in range(1,self.__img_height+1):
             for k in range(1,self.__img_width+1):
                 progress = progress+1
                 neighbourhood[0,:] = padd_sharp_img[j-1][k-1:k+2]
-                neighbourhood[1,:] = padd_sharp_img[j-1][k-1:k+2]
-                neighbourhood[2,:] = padd_sharp_img[j-1][k-1:k+2]
+                neighbourhood[1,:] = padd_sharp_img[j][k-1:k+2]
+                neighbourhood[2,:] = padd_sharp_img[j+1][k-1:k+2]
                 # new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
                 new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)
-                self.dialog.setValue(progress)
-                if(self.dialog.wasCanceled()):
-                    break
-                # print(j ,k)
-        np.clip(new_img_5, 0,255, out=new_img_5)
-        self.s2.valueChanged.connect(lambda: self.sharpen_img(new_img_5))
+                self.dialog.setValue(progress) # display the progress
+                if(self.dialog.wasCanceled()): # cancel button is pressed
+                    break # stop execution and return to the main window
+        self.__mdfd_img = new_img_5
+        self.disp("Scroll to display sharpened image",1)# to display the changed image
+        # print( np.where(new_img_5==np.max(new_img_5)))
+        np.clip(new_img_5, 0,255, out=new_img_5) #clip the values to make them lie in (0,255)
+        self.s2.valueChanged.connect(lambda: self.sharpen_img(new_img_5)) # call the sharpen_img when ever scroll bar is changed
 
     def sharpen_img(self,new_img_5): # to sharpen the image
-        sigma = self.s2.value()
-        new_img = np.empty_like(new_img_5)
-        np.clip(sigma*new_img_5,0,255,out=new_img)
-        self.__mdfd_img = self.__img_v+new_img
+        sigma = self.s2.value() # get the constant to multiply with the image
+        new_img = np.empty_like(new_img_5) # create an temp array to store the image
+        np.clip(sigma*new_img_5,0,255,out=new_img) #clip the values to make them lie in (0,255)
+        self.__mdfd_img = self.__img_v + new_img # save the final sharpened image
         self.disp("Sharpened Image",1)# to display the changed image
         print("Image Sharpened") # Print status to terminal or IDE
 
@@ -316,7 +319,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         pix_img = QtGui.QPixmap(QtGui.QImage(img_color,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888))
         self.lbl2.clear()
         self.lbl2.setText(txt)
-        self.lbl2.resize(200,50)
+        self.lbl2.resize(300,50)
         self.lbl2.move(950,0)
         self.lbl2.show()
         pix_img= pix_img.scaled(600,600, QtCore.Qt.KeepAspectRatio)
@@ -328,9 +331,9 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.lbl3.setPixmap(pix_img)
         self.lbl3.show()
 
-def main():
-    app = QtGui.QApplication(sys.argv)
-    GUI = Window()
-    # GUI.disp()
-    sys.exit(app.exec_())
+def main(): # define  a main class to call window created
+    app = QtGui.QApplication(sys.argv) # start a qtgui application
+    GUI = Window() #create an object of the window
+    # GUI.disp() # display it
+    sys.exit(app.exec_()) #close the window
 main()
