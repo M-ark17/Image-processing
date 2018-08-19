@@ -183,35 +183,34 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
         x_count = -1
         y_count = -1
-        filter = np.zeros((3,3), dtype=np.float)
+        filter = np.zeros((2*sigma+1,2*sigma+1), dtype=np.float)
         blur_img = self.__mdfd_img
-        padd_blur_img = np.insert(blur_img,[0],0,axis = 0)
-        padd_blur_img = np.insert(padd_blur_img,[self.__img_height+1],0,axis = 0)
-        padd_blur_img = np.insert(padd_blur_img,[0],0,axis = 1)
-        padd_blur_img = np.insert(padd_blur_img,[self.__img_width+1],0,axis = 1)
+        padd_blur_img = np.append(np.zeros((sigma,self.__img_width)), blur_img, axis=0)
+        padd_blur_img = np.append(padd_blur_img,np.zeros((sigma,self.__img_width)), axis=0)
+        padd_blur_img = np.append(np.zeros((self.__img_height+2*sigma,sigma)), padd_blur_img,axis=1)
+        padd_blur_img = np.append(padd_blur_img,np.zeros((self.__img_height+2*sigma,sigma)),axis=1)
         new_img_4 = np.empty_like(blur_img)
-
         # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
-        for x in range(-1,1):
+        for x in range(-sigma,sigma+1):
             x_count+=1
             y_count = -1
-            for y in range(-1,1):
+            for y in range(-sigma,sigma+1):
                 y_count+=1
                 filter[x_count,y_count] = math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))
-        neighbourhood = np.zeros((3,3))
+        neighbourhood = np.zeros((2*sigma+1,2*sigma+1))
         progress = 0
         self.dialog.forceShow()
-        for j in range(1,self.__img_height+1):
-            for k in range(1,self.__img_width+1):
-                neighbourhood[0,:] = padd_blur_img[j-1][k-1:k+2]
-                neighbourhood[1,:] = padd_blur_img[j-1][k-1:k+2]
-                neighbourhood[2,:] = padd_blur_img[j-1][k-1:k+2]
-                new_img_4[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
-                # print(j ,k)
+        for j in range(sigma,self.__img_height+sigma):
+            for k in range(sigma,self.__img_width+sigma):
+                neighbourhood = padd_blur_img[j-sigma:j+sigma+1,k-sigma:k+sigma+1]
+                # print(neighbourhood.shape,range(j-sigma,j+sigma+1),range(k-sigma,k+sigma+1))
+                new_img_4[j-sigma,k-sigma] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
                 progress = progress + 1
-                self.dialog.setValue(progress)
+                if(progress%1000==0):
+                    self.dialog.setValue(progress)
                 if(self.dialog.wasCanceled()):
                     break
+        self.dialog.setValue(progress)
         self.__mdfd_img = new_img_4
         self.disp("Blurred Image",1)# to display the changed image
         print("Image Blurred") # Print status to terminal or IDE
@@ -241,6 +240,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         new_img_5 *= 0
 
         # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
+        # sigma = 1
         # x_count = -1
         # y_count = -1
         # for x in range(-1,1):
@@ -249,25 +249,30 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         #     for y in range(-1,1):
         #         y_count+=1
         #         filter[x_count,y_count] = -(1.0-(x**2.0+y**2.0)/(2.0*sigma*sigma))*math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))
-        filter = np.array([[-1.0,-1.0,-1.0],[-1.0,8.0,-1.0],[-1.0,-1.0,-1.0]])
-        # filter = [[-0.0,-0.0,-0.0],[-0.0,1.0,-0.0],[-0.0,-0.0,-0.0]]
+        # filter = np.array([[-1.0,-1.0,-1.0],[-1.0,9.0,-1.0],[-1.0,-1.0,-1.0]])
+        # filter = np.array([[-1.0,-1.0,-1.0],[-1.0,9.0,-1.0],[-1.0,-1.0,-1.0]])
+        filter = [[0.0,1.0,0.0],[1.0,-4.0,1.0],[0.0,1.0,0.0]]
         # print(len(filter),len(filter[0]))
         neighbourhood = np.zeros((3,3))
+        # new_img_5 = cv.filter2D(sharp_img,-1,filter)
         progress = 0
         self.dialog.forceShow()
         # print(padd_sharp_img[padd_sharp_img==np.max(padd_sharp_img)])
-        print(np.max(padd_sharp_img),np.max(self.__mdfd_img),np.max(self.__img_v))
+        # print(np.max(padd_sharp_img),np.max(self.__mdfd_img),np.max(self.__img_v))
         for j in range(1,self.__img_height+1):
             for k in range(1,self.__img_width+1):
+        # for j in range(1,2+1):
+            # for k in range(1,2+1):
                 progress = progress+1
-                neighbourhood[0,:] = padd_sharp_img[j-1][k-1:k+2]
-                neighbourhood[1,:] = padd_sharp_img[j][k-1:k+2]
-                neighbourhood[2,:] = padd_sharp_img[j+1][k-1:k+2]
+                neighbourhood = padd_sharp_img[j-1:j+2,k-1:k+2]
                 # new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
                 new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)
-                self.dialog.setValue(progress) # display the progress
+                print(neighbourhood*filter,np.sum(neighbourhood*filter),new_img_5[j-1,k-1],self.__img_v[j-1,k-1])
+                if(progress%1000==0):
+                    self.dialog.setValue(progress) # display the progress
                 if(self.dialog.wasCanceled()): # cancel button is pressed
                     break # stop execution and return to the main window
+        self.dialog.setValue(progress)
         self.__mdfd_img = new_img_5
         self.disp("Scroll to display sharpened image",1)# to display the changed image
         # print( np.where(new_img_5==np.max(new_img_5)))
@@ -275,10 +280,12 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.s2.valueChanged.connect(lambda: self.sharpen_img(new_img_5)) # call the sharpen_img when ever scroll bar is changed
 
     def sharpen_img(self,new_img_5): # to sharpen the image
-        sigma = self.s2.value() # get the constant to multiply with the image
+        self.__mdfd_img_lstchg = self.__mdfd_img
+        # sigma = self.s2.value() # get the constant to multiply with the image
+        sigma = 1
         new_img = np.empty_like(new_img_5) # create an temp array to store the image
         np.clip(sigma*new_img_5,0,255,out=new_img) #clip the values to make them lie in (0,255)
-        self.__mdfd_img = self.__img_v + new_img # save the final sharpened image
+        self.__mdfd_img =  new_img  # save the final sharpened image
         self.disp("Sharpened Image",1)# to display the changed image
         print("Image Sharpened") # Print status to terminal or IDE
 
@@ -309,6 +316,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
 
     def disp(self,txt,flag = 0): # this method is used to display the transformed image to GUI
         if (flag == 0):
+            self.s2.clear()
             self.lbl_s3.clear()
             self.e2.clear()
             self.e2.hide()
