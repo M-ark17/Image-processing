@@ -61,8 +61,8 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         btn5.clicked.connect(self.sharpen_img_scr_bar) # go to sharpen_img_scr_bar method when clicked on Sharpeninge button
         btn5.resize(200,40) # resize the button to the required size
         btn5.move(500,300 ) # reposition the button at the required position
-        btn6 = QtGui.QPushButton("Additional Feature",self)
-        btn6.clicked.connect(self.save_image) # go to save_image method when clicked on Additional Feature button
+        btn6 = QtGui.QPushButton("Sobel Operator",self)
+        btn6.clicked.connect(self.edge_detect) # go to save_image method when clicked on Sobel operator button
         btn6.resize(200,40) # resize the button to the required size
         btn6.move(500,350 ) # reposition the button at the required position
         btn7 = QtGui.QPushButton("Undo last Change",self)
@@ -92,6 +92,8 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.__img_h,self.__img_s,self.__img_v = cv.split(img_hsv)
         self.__img_height,self.__img_width = self.__img_v.shape
         # print self.__img_v.shape
+        self.__mdfd_img_lstchg = None
+        self.__mdfd_img = None
         self.__mdfd_img_lstchg = self.__img_v # update the last changed value to uploaded image
         self.__mdfd_img = self.__img_v # update the current changed image to uploaded image
         if upld_img.load(name): # if the image is uploaded properly then upld_img.load will be true
@@ -166,128 +168,148 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         print("Log transformation Applied") # Print status to terminal or IDE
 
     def blur_img_scr_bar(self):
-        self.lbl_s3.resize(500,50)
-        self.lbl_s3.setText("Please Enter an Integer value Sigma for Gaussian Blur")
-        self.lbl_s3.move(100,590)
-        self.lbl_s3.show()
-        self.e2.setValidator(QIntValidator())
-        self.e2.move(500,600)
-        btn_blur_img = QPushButton('OK', self)
-        btn_blur_img.resize(50,30)
-        btn_blur_img.move(610, 600)
-        btn_blur_img.show()
-        self.e2.show()
-        btn_blur_img.clicked.connect(lambda: self.blur_img(int(self.e2.text())))
+        self.lbl_s3.resize(500,50)#label to display title for output image
+        self.lbl_s3.setText("Please Enter an Integer value Sigma for Gaussian Blur")#title text
+        self.lbl_s3.move(100,590) #positioning
+        self.lbl_s3.show() #display title
+        self.e2.setValidator(QIntValidator())#text box setting to allow only integer values
+        self.e2.move(500,600) #positioning
+        btn_blur_img = QPushButton('OK', self) #button to click ok to start operaion on the input
+        btn_blur_img.resize(50,30) #resize the button
+        btn_blur_img.move(610, 600) #positioning
+        btn_blur_img.show() #display button
+        self.e2.show() #display text box
+        btn_blur_img.clicked.connect(lambda: self.blur_img(int(self.e2.text()))) #call blur_img when clicked
 
     def blur_img(self,sigma):
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        x_count = -1
-        y_count = -1
-        filter = np.zeros((2*sigma+1,2*sigma+1), dtype=np.float)
-        blur_img = self.__mdfd_img
-        padd_blur_img = np.append(np.zeros((sigma,self.__img_width)), blur_img, axis=0)
-        padd_blur_img = np.append(padd_blur_img,np.zeros((sigma,self.__img_width)), axis=0)
-        padd_blur_img = np.append(np.zeros((self.__img_height+2*sigma,sigma)), padd_blur_img,axis=1)
-        padd_blur_img = np.append(padd_blur_img,np.zeros((self.__img_height+2*sigma,sigma)),axis=1)
-        new_img_4 = np.empty_like(blur_img)
-        # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
-        for x in range(-sigma,sigma+1):
+        x_count = -1#initialise
+        y_count = -1#initialise
+        filter = np.zeros((2*sigma+1,2*sigma+1), dtype=np.float) #empty filter kernel
+        blur_img = self.__mdfd_img#take the data to temp array
+        padd_blur_img = np.append(np.zeros((sigma,self.__img_width)), blur_img, axis=0)#padd with zeros
+        padd_blur_img = np.append(padd_blur_img,np.zeros((sigma,self.__img_width)), axis=0)#padd with zeros
+        padd_blur_img = np.append(np.zeros((self.__img_height+2*sigma,sigma)), padd_blur_img,axis=1)#padd with zeros
+        padd_blur_img = np.append(padd_blur_img,np.zeros((self.__img_height+2*sigma,sigma)),axis=1)#padd with zeros
+        new_img_4 = np.empty_like(blur_img)#empty array for storing the output
+        for x in range(-sigma,sigma+1):#for the rows of the filter
             x_count+=1
             y_count = -1
-            for y in range(-sigma,sigma+1):
+            for y in range(-sigma,sigma+1):#for the columns of the filter
                 y_count+=1
-                filter[x_count,y_count] = math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))
-        neighbourhood = np.zeros((2*sigma+1,2*sigma+1))
-        progress = 0
-        self.dialog.forceShow()
-        for j in range(sigma,self.__img_height+sigma):
-            for k in range(sigma,self.__img_width+sigma):
-                neighbourhood = padd_blur_img[j-sigma:j+sigma+1,k-sigma:k+sigma+1]
-                # print(neighbourhood.shape,range(j-sigma,j+sigma+1),range(k-sigma,k+sigma+1))
-                new_img_4[j-sigma,k-sigma] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
-                progress = progress + 1
-                if(progress%1000==0):
-                    self.dialog.setValue(progress)
-                if(self.dialog.wasCanceled()):
-                    break
-        self.dialog.setValue(progress)
-        self.__mdfd_img = new_img_4
+                filter[x_count,y_count] = math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))#compute the gaussian blur kernel
+        neighbourhood = np.zeros((2*sigma+1,2*sigma+1))#window
+        progress = 0#to display progress in progres bar
+        self.dialog.forceShow() # show the progress bar
+        for j in range(sigma,self.__img_height+sigma):#for the rows of the image
+            for k in range(sigma,self.__img_width+sigma): #for the columns of the images
+                neighbourhood = padd_blur_img[j-sigma:j+sigma+1,k-sigma:k+sigma+1]#take the pixels in neighbourhood of the pixel
+                new_img_4[j-sigma,k-sigma] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)#multiply window with filter and average over the filter
+                progress = progress + 1#increment the status
+                if(progress%1000==0):#display progress every 1000 loops
+                    self.dialog.setValue(progress)#to display progress
+                if(self.dialog.wasCanceled()):#if the cancel button is pressed
+                    break # stop the loog
+        self.dialog.setValue(progress) # set the progress
+        self.__mdfd_img = new_img_4 #store the computed values in global variable
         self.disp("Blurred Image",1)# to display the changed image
         print("Image Blurred") # Print status to terminal or IDE
 
     def sharpen_img_scr_bar(self):
-        self.s2.resize(20,400)
-        self.s2.move(1330,100)
-        self.s2.setMaximum(10)
-        self.s2.setMinimum(1)
-        self.s2.show()
-        self.lbl_s1.resize(30,50)
-        self.lbl_s1.setText("High")
-        self.lbl_s1.move(1320,500)
-        self.lbl_s1.show()
-        self.lbl_s2.resize(30,50)
-        self.lbl_s2.setText("Low")
-        self.lbl_s2.move(1320,50)
-        self.lbl_s2.show()
+        self.s2.resize(20,400) #scrollbar
+        self.s2.move(1330,100) #positioning
+        self.s2.setMaximum(10) #set maximum scroll value to 10
+        self.s2.setMinimum(1) #set minimum scroll value to 1
+        self.s2.show() #display scroll bar
+        self.lbl_s1.resize(30,50)#resize the label
+        self.lbl_s1.setText("High") # set the display text
+        self.lbl_s1.move(1330,500) #positioning
+        self.lbl_s1.show() #display the label
+        self.lbl_s2.resize(30,50)#resize the label
+        self.lbl_s2.setText("Low") # set the display text
+        self.lbl_s2.move(1330,50) #positioning
+        self.lbl_s2.show() #display the label
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        filter = np.zeros((3,3), dtype=np.float)
-        sharp_img = self.__mdfd_img
-        padd_sharp_img = np.insert(sharp_img,[0],0,axis = 0)
-        padd_sharp_img = np.insert(padd_sharp_img,[self.__img_height+1],0,axis = 0)
-        padd_sharp_img = np.insert(padd_sharp_img,[0],0,axis = 1)
-        padd_sharp_img = np.insert(padd_sharp_img,[self.__img_width+1],0,axis = 1)
-        new_img_5 = np.empty_like(sharp_img)
-        new_img_5 *= 0
-
+        filter = np.zeros((3,3), dtype=np.float) #initialise filter with zeros
+        sharp_img = self.__mdfd_img #take image data to a temp variable
+        padd_sharp_img = np.insert(sharp_img,[0],0,axis = 0) #padd zeros to the image
+        padd_sharp_img = np.insert(padd_sharp_img,[self.__img_height+1],0,axis = 0) #padd zeros to the image
+        padd_sharp_img = np.insert(padd_sharp_img,[0],0,axis = 1) #padd zeros to the image
+        padd_sharp_img = np.insert(padd_sharp_img,[self.__img_width+1],0,axis = 1) #padd zeros to the image
+        new_img_5 = np.empty_like(sharp_img) #temp array to store new values
         # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
-        # sigma = 1
-        # x_count = -1
-        # y_count = -1
-        # for x in range(-1,1):
-        #     x_count+=1
-        #     y_count = -1
-        #     for y in range(-1,1):
-        #         y_count+=1
-        #         filter[x_count,y_count] = -(1.0-(x**2.0+y**2.0)/(2.0*sigma*sigma))*math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))
         # filter = np.array([[-1.0,-1.0,-1.0],[-1.0,9.0,-1.0],[-1.0,-1.0,-1.0]])
         # filter = np.array([[-1.0,-1.0,-1.0],[-1.0,9.0,-1.0],[-1.0,-1.0,-1.0]])
-        filter = [[0.0,1.0,0.0],[1.0,-4.0,1.0],[0.0,1.0,0.0]]
+        filter = np.array([[0.0,1.0,0.0],[1.0,-4.0,1.0],[0.0,1.0,0.0]])
         # print(len(filter),len(filter[0]))
-        neighbourhood = np.zeros((3,3))
+        neighbourhood = np.zeros((3,3)) # initialise window
         # new_img_5 = cv.filter2D(sharp_img,-1,filter)
-        progress = 0
-        self.dialog.forceShow()
+        progress = 0 #initialise progress variable
+        self.dialog.forceShow() #show the progress bar
         # print(padd_sharp_img[padd_sharp_img==np.max(padd_sharp_img)])
         # print(np.max(padd_sharp_img),np.max(self.__mdfd_img),np.max(self.__img_v))
-        for j in range(1,self.__img_height+1):
-            for k in range(1,self.__img_width+1):
-        # for j in range(1,2+1):
-            # for k in range(1,2+1):
-                progress = progress+1
-                neighbourhood = padd_sharp_img[j-1:j+2,k-1:k+2]
-                # new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)
+        for j in range(1,self.__img_height+1): #for row in image
+            for k in range(1,self.__img_width+1): #for columns in image
+                progress = progress+1 # invrement progress value
+                neighbourhood = padd_sharp_img[j-1:j+2,k-1:k+2] #neighbourhood of the pixel
                 new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)
-                print(neighbourhood*filter,np.sum(neighbourhood*filter),new_img_5[j-1,k-1],self.__img_v[j-1,k-1])
-                if(progress%1000==0):
+                # print(neighbourhood*filter,np.sum(neighbourhood*filter),new_img_5[j-1,k-1],self.__img_v[j-1,k-1])
+                if(progress%1000==0): #display progress for every 1000 loops
                     self.dialog.setValue(progress) # display the progress
                 if(self.dialog.wasCanceled()): # cancel button is pressed
                     break # stop execution and return to the main window
-        self.dialog.setValue(progress)
-        self.__mdfd_img = new_img_5
+        self.dialog.setValue(progress) #display the progress using progress bar
+        self.__mdfd_img = self.__img_v+new_img_5 # store the computed array values in global array #to clear the label to show new objects
         self.disp("Scroll to display sharpened image",1)# to display the changed image
         # print( np.where(new_img_5==np.max(new_img_5)))
         np.clip(new_img_5, 0,255, out=new_img_5) #clip the values to make them lie in (0,255)
         self.s2.valueChanged.connect(lambda: self.sharpen_img(new_img_5)) # call the sharpen_img when ever scroll bar is changed
 
     def sharpen_img(self,new_img_5): # to sharpen the image
-        self.__mdfd_img_lstchg = self.__mdfd_img
-        # sigma = self.s2.value() # get the constant to multiply with the image
-        sigma = 1
+        self.__mdfd_img_lstchg = self.__mdfd_img #keep the data of last changed image for undo option
+        sigma = self.s2.value() # get the constant to multiply with the image
+        # sigma = 1
         new_img = np.empty_like(new_img_5) # create an temp array to store the image
-        np.clip(sigma*new_img_5,0,255,out=new_img) #clip the values to make them lie in (0,255)
-        self.__mdfd_img =  new_img  # save the final sharpened image
-        self.disp("Sharpened Image",1)# to display the changed image
+        np.clip(sigma/11*new_img_5,0,255,out=new_img) #clip the values to make them lie in (0,255)
+        self.__mdfd_img +=  new_img  # save the final sharpened image
+        self.disp("Sharpened Image",1,1)# to display the changed image
         print("Image Sharpened") # Print status to terminal or IDE
+
+    def edge_detect(self):
+        self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
+        filter_6 = np.zeros((3,3), dtype=np.float)
+        filter_7 = np.zeros((3,3), dtype=np.float)
+        blur_img = self.__mdfd_img
+        padd_blur_img = np.append(np.zeros((1,self.__img_width)), blur_img, axis=0)
+        padd_blur_img = np.append(padd_blur_img,np.zeros((1,self.__img_width)), axis=0)
+        padd_blur_img = np.append(np.zeros((self.__img_height+2,1)), padd_blur_img,axis=1)
+        padd_blur_img = np.append(padd_blur_img,np.zeros((self.__img_height+2,1)),axis=1)
+        new_img_7 = np.empty_like(blur_img)
+        new_img_6 = np.empty_like(blur_img)
+        new_img_final = np.empty_like(blur_img)
+        filter_x = np.array([[1.0,0.0,-1.0],[2.0,0.0,-2.0],[1.0,-0.0,-1.0]])
+        filter_y = np.array([[1.0,2.0,1.0],[0.0,0.0,0.0],[-1.0,-2.0,-1.0]])
+        # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
+        neighbourhood = np.zeros((3,3))
+        progress = 0
+        self.dialog.forceShow()
+        for j in range(1,self.__img_height+1):
+            for k in range(1,self.__img_width+1):
+                neighbourhood = padd_blur_img[j-1:j+2,k-1:k+2]
+                # print(neighbourhood.shape,range(j-1,j+1+1),range(k-1,k+1+1))
+                new_img_7[j-1,k-1] = np.sum(neighbourhood*filter_x,dtype=np.float)
+                new_img_6[j-1,k-1] = np.sum(neighbourhood*filter_y,dtype=np.float)
+                progress = progress + 1
+                new_img_final[j-1,k-1] = new_img_7[j-1,k-1]+new_img_6[j-1,k-1]
+                if(progress%1000==0):
+                    self.dialog.setValue(progress)
+                if(self.dialog.wasCanceled()):
+                    break
+        self.dialog.setValue(progress)
+        np.clip(new_img_final,0,70 , out = new_img_final)
+        self.__mdfd_img = new_img_final
+        self.disp("Image edges")# to display the changed image
+        print("Image Edges Detected") # Print status to terminal or IDE
 
     def undoall(self): # to undo all changes done on the image
         self.__mdfd_img = self.__img_v # change the data in the current changed data to original image data
@@ -301,43 +323,45 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         print("Last change UNDONE ")# Print status to terminal or IDE
 
     def save_image(self): # this method is used for saving the image to the file
-        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','Images (*.png *.xpm *.jpg *.jpeg)')
-        itos = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img])
-        itos = cv.cvtColor(itos, cv.COLOR_HSV2RGB)
-        img_to_save = QtGui.QPixmap(QtGui.QImage(itos,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888))
-        if img_to_save.save(name):
+        name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','Images (*.png *.xpm *.jpg *.jpeg)') # tp open a dialog box to input image
+        itos = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img])#merge intensity with the hue and saturation
+        itos = cv.cvtColor(itos, cv.COLOR_HSV2RGB)#convert hsv to rgb image
+        img_to_save = QtGui.QPixmap(QtGui.QImage(itos,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888)) # convert opencv image to pixmap to display in gui
+        if img_to_save.save(name):#if the image is saved
             print("Image Saved To file") # Print status to terminal or IDE
-        else:
+        else:#if the could not be saved
             print("Could not save the Image to folder") # Print status to terminal or IDE
 
     def win_close(self): # this method is used for closing the window
         print("Window closed") # Print status to terminal or IDE
         sys.exit() #exit the application
 
-    def disp(self,txt,flag = 0): # this method is used to display the transformed image to GUI
+    def disp(self,txt,flag = 0,scroll = 0): # this method is used to display the transformed image to GUI
         if (flag == 0):
-            self.s2.clear()
-            self.lbl_s3.clear()
-            self.e2.clear()
-            self.e2.hide()
-            self.lbl_s1.clear()
-            self.lbl_s2.clear()
+            self.s2.hide() #to hide the scroll bar
+            self.lbl_s3.clear() #to clear the label to show new objects
+            self.e2.clear() #to clear the label to show new objects
+            self.e2.hide() #to hide the text box
+            self.lbl_s1.clear() #to clear the label to show new objects
+            self.lbl_s2.clear() #to clear the label to show new objects
+        if (scroll == 0):
+            self.s2.setValue(1)
         img_pix1 = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img])
         img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB)
         pix_img = QtGui.QPixmap(QtGui.QImage(img_color,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888))
-        self.lbl2.clear()
-        self.lbl2.setText(txt)
-        self.lbl2.resize(300,50)
-        self.lbl2.move(950,0)
-        self.lbl2.show()
+        self.lbl2.clear() #to clear the label to show new objects
+        self.lbl2.setText(txt) #set the text to display
+        self.lbl2.resize(300,50) #resize the label to required size
+        self.lbl2.move(950,0) #positioning the label
+        self.lbl2.show() #show the label
         pix_img= pix_img.scaled(600,600, QtCore.Qt.KeepAspectRatio)
-        self.lbl3.clear()
-        self.lbl3.resize(600,600)
-        self.lbl3.move(720,40)
+        self.lbl3.clear() #to clear the label to show new objects
+        self.lbl3.resize(600,600) #resize the label to required size
+        self.lbl3.move(720,40) #positioning the label
         self.lbl3.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
-        self.lbl3.setScaledContents(False)
-        self.lbl3.setPixmap(pix_img)
-        self.lbl3.show()
+        self.lbl3.setScaledContents(False) #keep the image as it is while scaling
+        self.lbl3.setPixmap(pix_img) #shoe the image
+        self.lbl3.show() #show the label
 
 def main(): # define  a main class to call window created
     app = QtGui.QApplication(sys.argv) # start a qtgui application
