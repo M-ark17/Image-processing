@@ -336,7 +336,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         sys.exit() #exit the application
 
     def disp(self,txt,flag = 0,scroll = 0): # this method is used to display the transformed image to GUI
-        if (flag == 0):
+        if (flag == 0): #whether to clear some labels or not is decided by this flag variable
             self.s2.hide() #to hide the scroll bar
             self.lbl_s3.clear() #to clear the label to show new objects
             self.e2.clear() #to clear the label to show new objects
