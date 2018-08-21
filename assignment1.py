@@ -206,7 +206,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
                 neighbourhood = padd_blur_img[j-sigma:j+sigma+1,k-sigma:k+sigma+1]#take the pixels in neighbourhood of the pixel
                 new_img_4[j-sigma,k-sigma] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)#multiply window with filter and average over the filter
                 progress = progress + 1#increment the status
-                if(progress%1000==0):#display progress every 1000 loops
+                if(progress%3000==0):#display progress every 3000 loops
                     self.dialog.setValue(progress)#to display progress
                 if(self.dialog.wasCanceled()):#if the cancel button is pressed
                     break # stop the loog
@@ -232,14 +232,14 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
         filter = np.zeros((3,3), dtype=np.float) #initialise filter with zeros
         sharp_img = self.__mdfd_img #take image data to a temp variable
-        padd_sharp_img = np.insert(sharp_img,[0],0,axis = 0) #padd zeros to the image
+        padd_sharp_img = np.insert(sharp_img,[0],0,axis = 0)  #padd zeros to the image
         padd_sharp_img = np.insert(padd_sharp_img,[self.__img_height+1],0,axis = 0) #padd zeros to the image
         padd_sharp_img = np.insert(padd_sharp_img,[0],0,axis = 1) #padd zeros to the image
         padd_sharp_img = np.insert(padd_sharp_img,[self.__img_width+1],0,axis = 1) #padd zeros to the image
         new_img_5 = np.empty_like(sharp_img) #temp array to store new values
         # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
         # filter = np.array([[-1.0,-1.0,-1.0],[-1.0,9.0,-1.0],[-1.0,-1.0,-1.0]])
-        # filter = np.array([[-1.0,-1.0,-1.0],[-1.0,9.0,-1.0],[-1.0,-1.0,-1.0]])
+        # filter = np.array([[-1.0,-1.0,-1.0],[-1.0,8.0,-1.0],[-1.0,-1.0,-1.0]])
         filter = np.array([[0.0,1.0,0.0],[1.0,-4.0,1.0],[0.0,1.0,0.0]])
         # print(len(filter),len(filter[0]))
         neighbourhood = np.zeros((3,3)) # initialise window
@@ -254,7 +254,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
                 neighbourhood = padd_sharp_img[j-1:j+2,k-1:k+2] #neighbourhood of the pixel
                 new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)
                 # print(neighbourhood*filter,np.sum(neighbourhood*filter),new_img_5[j-1,k-1],self.__img_v[j-1,k-1])
-                if(progress%1000==0): #display progress for every 1000 loops
+                if(progress%3000==0): #display progress for every 3000 loops
                     self.dialog.setValue(progress) # display the progress
                 if(self.dialog.wasCanceled()): # cancel button is pressed
                     break # stop execution and return to the main window
@@ -270,44 +270,43 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         sigma = self.s2.value() # get the constant to multiply with the image
         # sigma = 1
         new_img = np.empty_like(new_img_5) # create an temp array to store the image
-        np.clip(sigma/11*new_img_5,0,255,out=new_img) #clip the values to make them lie in (0,255)
+        np.clip(sigma/10*new_img_5,0,255,out=new_img) #clip the values to make them lie in (0,255)
         self.__mdfd_img +=  new_img  # save the final sharpened image
         self.disp("Sharpened Image",1,1)# to display the changed image
         print("Image Sharpened") # Print status to terminal or IDE
 
     def edge_detect(self):
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        filter_6 = np.zeros((3,3), dtype=np.float)
-        filter_7 = np.zeros((3,3), dtype=np.float)
-        blur_img = self.__mdfd_img
-        padd_blur_img = np.append(np.zeros((1,self.__img_width)), blur_img, axis=0)
-        padd_blur_img = np.append(padd_blur_img,np.zeros((1,self.__img_width)), axis=0)
-        padd_blur_img = np.append(np.zeros((self.__img_height+2,1)), padd_blur_img,axis=1)
-        padd_blur_img = np.append(padd_blur_img,np.zeros((self.__img_height+2,1)),axis=1)
-        new_img_7 = np.empty_like(blur_img)
-        new_img_6 = np.empty_like(blur_img)
-        new_img_final = np.empty_like(blur_img)
-        filter_x = np.array([[1.0,0.0,-1.0],[2.0,0.0,-2.0],[1.0,-0.0,-1.0]])
-        filter_y = np.array([[1.0,2.0,1.0],[0.0,0.0,0.0],[-1.0,-2.0,-1.0]])
+        filter_6 = np.zeros((3,3), dtype=np.float) #filter for edge detection
+        filter_7 = np.zeros((3,3), dtype=np.float) #filter for edge detection
+        blur_img = self.__mdfd_img #take the image data to a empty array
+        padd_blur_img = np.append(np.zeros((1,self.__img_width)), blur_img, axis=0) #padd zeros to the image
+        padd_blur_img = np.append(padd_blur_img,np.zeros((1,self.__img_width)), axis=0) #padd zeros to the image
+        padd_blur_img = np.append(np.zeros((self.__img_height+2,1)), padd_blur_img,axis=1) #padd zeros to the image
+        padd_blur_img = np.append(padd_blur_img,np.zeros((self.__img_height+2,1)),axis=1) #padd zeros to the image
+        new_img_7 = np.empty_like(blur_img)  # empty array to store the computed data
+        new_img_6 = np.empty_like(blur_img) # empty array to store the computed data
+        new_img_final = np.empty_like(blur_img) # store final image data
+        filter_x = np.array([[1.0,0.0,-1.0],[2.0,0.0,-2.0],[1.0,-0.0,-1.0]]) #filter to detect horizontal edges
+        filter_y = np.array([[1.0,2.0,1.0],[0.0,0.0,0.0],[-1.0,-2.0,-1.0]]) #filter to detect vertical edges
         # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
-        neighbourhood = np.zeros((3,3))
-        progress = 0
-        self.dialog.forceShow()
-        for j in range(1,self.__img_height+1):
-            for k in range(1,self.__img_width+1):
-                neighbourhood = padd_blur_img[j-1:j+2,k-1:k+2]
-                # print(neighbourhood.shape,range(j-1,j+1+1),range(k-1,k+1+1))
-                new_img_7[j-1,k-1] = np.sum(neighbourhood*filter_x,dtype=np.float)
-                new_img_6[j-1,k-1] = np.sum(neighbourhood*filter_y,dtype=np.float)
-                progress = progress + 1
-                new_img_final[j-1,k-1] = new_img_7[j-1,k-1]+new_img_6[j-1,k-1]
-                if(progress%1000==0):
-                    self.dialog.setValue(progress)
-                if(self.dialog.wasCanceled()):
-                    break
+        neighbourhood = np.zeros((3,3)) #window of size 3*3
+        progress = 0 #variable to display progress
+        self.dialog.forceShow() # show the progress dialog box
+        for j in range(1,self.__img_height+1): #for rows in image
+            for k in range(1,self.__img_width+1): #for columns in image
+                neighbourhood = padd_blur_img[j-1:j+2,k-1:k+2] # get pixels intensites of the neighbourhood
+                new_img_7[j-1,k-1] = np.sum(neighbourhood*filter_x,dtype=np.float) #convolve with the filter to get horizontal edges
+                new_img_6[j-1,k-1] = np.sum(neighbourhood*filter_y,dtype=np.float) #convolve with the filter to get vertical edges
+                progress = progress + 1 #increment the progress value
+                new_img_final[j-1,k-1] = new_img_7[j-1,k-1]+new_img_6[j-1,k-1] #add the horizontal and vertical edge
+                if(progress%3000==0): # display the status every 3000 loops
+                    self.dialog.setValue(progress) #set the progress value
+                if(self.dialog.wasCanceled()): #if the cancel button is pressed
+                    break # stop the operation
         self.dialog.setValue(progress)
-        np.clip(new_img_final,0,70 , out = new_img_final)
-        self.__mdfd_img = new_img_final
+        np.clip(new_img_final,0,70 , out = new_img_final) #keep the intensites in the range(0,255)
+        self.__mdfd_img = new_img_final #store the transformed data in the global variable
         self.disp("Image edges")# to display the changed image
         print("Image Edges Detected") # Print status to terminal or IDE
 
@@ -344,11 +343,11 @@ class Window(QtGui.QMainWindow): #create a class to display a window
             self.e2.hide() #to hide the text box
             self.lbl_s1.clear() #to clear the label to show new objects
             self.lbl_s2.clear() #to clear the label to show new objects
-        if (scroll == 0):
-            self.s2.setValue(1)
-        img_pix1 = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img])
-        img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB)
-        pix_img = QtGui.QPixmap(QtGui.QImage(img_color,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888))
+        if (scroll == 0):#if the button other than sharpen is pressed
+            self.s2.setValue(1) #reset the value every time
+        img_pix1 = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img]) #merge the v with h and s using cv.merge
+        img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB) #convert the image to color image
+        pix_img = QtGui.QPixmap(QtGui.QImage(img_color,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888)) # convert opencv image to pixmap to display it to the user
         self.lbl2.clear() #to clear the label to show new objects
         self.lbl2.setText(txt) #set the text to display
         self.lbl2.resize(300,50) #resize the label to required size
