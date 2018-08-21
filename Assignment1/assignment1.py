@@ -158,7 +158,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
         log_trnsfrm_img = self.__mdfd_img # temp array to do operations on
         new_img_3 = np.empty_like(log_trnsfrm_img) # empty array to assign new intensity values
-        c = 100 # let c be 100
+        c = 46 # let c be 100
         for i in range (256): # for each instensity value of the image
             idx = (log_trnsfrm_img == i) # get the indexes with the same intensity levels
             new_intnsty = float(c*(math.log10(i+1))) # apply log transformation
