@@ -11,3 +11,4 @@ https://www.tutorialspoint.com/pyqt/pyqt_qinputdialog_widget.html
 http://zetcode.com/gui/pyqt4/layoutmanagement/
 https://thepythonguru.com/python-inheritance-and-polymorphism/
 https://docs.opencv.org/3.1.0/d5/d98/tutorial_mat_operations.html
+https://www.dfstudios.co.uk/articles/programming/image-programming-algorithms/image-processing-algorithms-part-6-gamma-correction/ lena_gamhi.png

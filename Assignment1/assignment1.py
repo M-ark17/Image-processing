@@ -134,7 +134,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         print("Histogram Equalized") # Print status to terminal or IDE
 
     def gamma_correct_btn(self): # method to ask for gamma value when gamma correct button is clicked
-        gamma,ok = QtGui.QInputDialog.getDouble(self,"integer input dialog","enter a number") # get the input from the user along with the status
+        gamma,ok = QtGui.QInputDialog.getDouble(self,"Gamma value","enter a number") # get the input from the user along with the status
         if ok: # if the user inputs any value
             print 'Gamma value = '+str(gamma) # Print status to terminal or IDE
             self.gamma_correct(gamma) # call the gamma_correct method with the given gamma
@@ -145,10 +145,10 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
         gamma_correct_img = self.__mdfd_img # store the image data to temporary array
         new_img_2=np.empty_like(gamma_correct_img) # create a temporary array to store calculated values
-        c = 1 # let c be 1
+        c = 255 # let c be 1
         for i in range (256): # for each intensity value
             idx = (gamma_correct_img == i) #get the indexes with the same intensity values
-            new_intnsty = c*(float(i)**gamma) # apply gamma transform on each intensity level
+            new_intnsty = c*((float(i)/255.0)**(1/gamma)) # apply gamma transform on each intensity level
             new_img_2[idx] = int(new_intnsty) # store the values in temporary array
         self.__mdfd_img = new_img_2 # save the gamma corrected image to global variable
         self.disp("Gamma transformation")# to display the changed image
@@ -158,7 +158,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
         log_trnsfrm_img = self.__mdfd_img # temp array to do operations on
         new_img_3 = np.empty_like(log_trnsfrm_img) # empty array to assign new intensity values
-        c = 46 # let c be 100
+        c = 47 # let c be 100
         for i in range (256): # for each instensity value of the image
             idx = (log_trnsfrm_img == i) # get the indexes with the same intensity levels
             new_intnsty = float(c*(math.log10(i+1))) # apply log transformation
