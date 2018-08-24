@@ -239,20 +239,21 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         new_img_5 = np.empty_like(sharp_img) #temp array to store new values
         # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
         # filter = np.array([[-1.0,-1.0,-1.0],[-1.0,9.0,-1.0],[-1.0,-1.0,-1.0]])
-        # filter = np.array([[-1.0,-1.0,-1.0],[-1.0,8.0,-1.0],[-1.0,-1.0,-1.0]])
-        filter = np.array([[0.0,1.0,0.0],[1.0,-4.0,1.0],[0.0,1.0,0.0]])
+        # filter = np.array([[-1.0,-1.0,-1.0],[-1.0,8.0,-1.0],[-1.0,-1.0,-1.0]],dtype ="float")
+        filter = np.array([[0.0,1.0,0.0],[1.0,-4.0,1.0],[0.0,1.0,0.0]],dtype = "float")
         # print(len(filter),len(filter[0]))
-        neighbourhood = np.zeros((3,3)) # initialise window
+        neighbourhood = np.zeros((3,3),dtype = "float") # initialise window
         # new_img_5 = cv.filter2D(sharp_img,-1,filter)
         progress = 0 #initialise progress variable
         self.dialog.forceShow() #show the progress bar
+        height,width = padd_sharp_img.shape
         # print(padd_sharp_img[padd_sharp_img==np.max(padd_sharp_img)])
         # print(np.max(padd_sharp_img),np.max(self.__mdfd_img),np.max(self.__img_v))
-        for j in range(1,self.__img_height+1): #for row in image
-            for k in range(1,self.__img_width+1): #for columns in image
+        for j in range(1,height-1): #for row in image
+            for k in range(1,width-1): #for columns in image
                 progress = progress+1 # invrement progress value
                 neighbourhood = padd_sharp_img[j-1:j+2,k-1:k+2] #neighbourhood of the pixel
-                new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype=np.float)
+                new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype="float")
                 # print(neighbourhood*filter,np.sum(neighbourhood*filter),new_img_5[j-1,k-1],self.__img_v[j-1,k-1])
                 if(progress%3000==0): #display progress for every 3000 loops
                     self.dialog.setValue(progress) # display the progress
@@ -260,18 +261,18 @@ class Window(QtGui.QMainWindow): #create a class to display a window
                     break # stop execution and return to the main window
         self.dialog.setValue(progress) #display the progress using progress bar
         self.__mdfd_img = self.__img_v+new_img_5 # store the computed array values in global array #to clear the label to show new objects
+        np.clip(self.__mdfd_img, 0,255, out=self.__mdfd_img) #clip the values to make them lie in (0,255)
         self.disp("Scroll to display sharpened image",1)# to display the changed image
         # print( np.where(new_img_5==np.max(new_img_5)))
-        np.clip(new_img_5, 0,255, out=new_img_5) #clip the values to make them lie in (0,255)
         self.s2.valueChanged.connect(lambda: self.sharpen_img(new_img_5)) # call the sharpen_img when ever scroll bar is changed
 
     def sharpen_img(self,new_img_5): # to sharpen the image
-        self.__mdfd_img_lstchg = self.__mdfd_img #keep the data of last changed image for undo option
+        # self.__mdfd_img_lstchg = self.__mdfd_img #keep the data of last changed image for undo option
         sigma = self.s2.value() # get the constant to multiply with the image
         # sigma = 1
         new_img = np.empty_like(new_img_5) # create an temp array to store the image
-        np.clip(sigma/10*new_img_5,0,255,out=new_img) #clip the values to make them lie in (0,255)
-        self.__mdfd_img +=  new_img  # save the final sharpened image
+        self.__mdfd_img  = self.__mdfd_img_lstchg+(sigma/10)*new_img_5  # save the final sharpened image
+        np.clip(self.__mdfd_img,0,255,out=self.__mdfd_img) #clip the values to make them lie in (0,255)
         self.disp("Sharpened Image",1,1)# to display the changed image
         print("Image Sharpened") # Print status to terminal or IDE
 
