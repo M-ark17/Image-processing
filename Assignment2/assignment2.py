@@ -5,6 +5,7 @@ import PyQt4
 import math
 import numpy as np
 import cv2 as cv
+# import PythonQwt as qwt
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
@@ -40,8 +41,8 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         btn.clicked.connect(self.file_open) # go to file_open method when clicked on Upload Image button
         btn.resize(200,40) # resize the button to the required size
         btn.move(500,50 ) # reposition the button at the required position
-        btn1 = QtGui.QPushButton("Equalize histogram",self)
-        btn1.clicked.connect(self.hist_equal) # go to hist_equal method when clicked on qualize histogram
+        btn1 = QtGui.QPushButton("Find DFT",self)
+        btn1.clicked.connect(self.DFT) # go to DFT method when clicked on Fing DFT
         btn1.resize(200,40) # resize the button to the required size
         btn1.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         btn1.move(500,100 )
@@ -116,22 +117,41 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         else: #if the image is not uploaded then
             print("Could not upload Image") # print status to the terminal or IDE
 
-    def hist_equal(self):# this method is for Histogram Equalization
+    def dft(self,ip_img): #function to perform DFT of the image
+        progress = 0#to display progress in progres bar
+        img_height,img_width = ip_img.shape
+        op_img = np.empty_like(ip_img)
+        op_it = np.nditer(op_img, flags=['multi_index'])
+        while not op_it.finished:
+            u = op_it.multi_index[0]
+            v = op_it.multi_index[1]
+            ip_it = np.nditer(ip_img, flags=['multi_index'])
+            while not ip_it.finished:
+                x = ip_it.multi_index[0]
+                y = ip_it.multi_index[1]
+                op_img[u,v] += np.absolute(ip_img[x,y]*np.exp( -2j*np.pi*(u*x/img_height+v*y/img_width)))
+                # print "%d <%s>" % (it[0], it.multi_index),
+                ip_it.iternext()
+            print(u,v,x,y,op_img[u,v])
+            op_it.iternext()
+        return op_img
+    def FFT_matrix(self,N):
+        i, j = np.meshgrid(np.arange(N), np.arange(N))
+        omega = np.exp( - 2 * np.pi * 1J / N )
+        W = np.power( omega, i * j ) / np.sqrt(N)
+        return W
+    def DFT(self):# this method is for Histogram Equalization
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        sum = 0 # initialise sum variable to store the cdf
-        hist_equal_img = self.__mdfd_img # assign the image data to temporary variable to do operations on it
-        new_img=np.empty_like(hist_equal_img) # create a empty numpy array with the same size of the input image
-        # print(np.max(hist_equal_img))
-        for i in range (256): # for each intensity value
-            idx = np.where(hist_equal_img == i) # get the indexes of the pixels with that image intensites
-            i_intnsty_freq = len(idx[0]) # find the number of such pixels
-            sum = sum +i_intnsty_freq # find the CDF
-            new_intnsty = (float(sum)/hist_equal_img.size)*255.0 # calculate the new intensity
-            # print new_intnsty
-            new_img[idx] = new_intnsty # assign the new intensity to new array
-        self.__mdfd_img = new_img # now move the data in temp variable to global variable
-        self.disp("Histogram Equalization") # to display the changed image
-        print("Histogram Equalized") # Print status to terminal or IDE
+        # self.__mdfd_img = self.dft(self.__mdfd_img)
+        # x = self.__mdfd_img # x is any input data with those dimensions
+        x = cv.cvtColor(self.__ip_img, cv.COLOR_RGB2GRAY)
+        W = self.FFT_matrix(self.__img_height)
+        self.__mdfd_img = W.dot(x).dot(W)
+
+
+        print("DFT calculated",np.ceil(np.absolute(self.__mdfd_img))) # Print status to terminal or IDE
+        # self.disp("DFT ",0,0,1,np.ceil(np.absolute(self.__mdfd_img)))
+        cv.imwrite("test.jpg", np.absolute(self.__mdfd_img))
 
     def gamma_correct_btn(self): # method to ask for gamma value when gamma correct button is clicked
         gamma,ok = QtGui.QInputDialog.getDouble(self,"Gamma value","enter a number") # get the input from the user along with the status
@@ -238,7 +258,6 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         padd_sharp_img = np.insert(padd_sharp_img,[0],0,axis = 1) #padd zeros to the image
         padd_sharp_img = np.insert(padd_sharp_img,[self.__img_width+1],0,axis = 1) #padd zeros to the image
         new_img_5 = np.empty_like(sharp_img) #temp array to store new values
-        # sigma = self.s2.value() # get the constant to multiply with the image
         filter = (np.array([[-1.0,-1.0,-1.0],[-1.0,8.0,-1.0],[-1.0,-1.0,-1.0]],dtype ="float")*sigma/10.0)+np.array([[0.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,0.0]],dtype ="float")
         # filter = np.array([[0.0,1.0,0.0],[1.0,-4.0,1.0],[0.0,1.0,0.0]],dtype = "float")
         neighbourhood = np.zeros((3,3),dtype = "float") # initialise window
@@ -246,21 +265,18 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         progress = 0 #initialise progress variable
         self.dialog.forceShow() #show the progress bar
         height,width = padd_sharp_img.shape
-        # print(padd_sharp_img[padd_sharp_img==np.max(padd_sharp_img)])
-        # print(np.max(padd_sharp_img),np.max(self.__mdfd_img),np.max(self.__img_v))
+
         for j in range(1,height-1): #for row in image
             for k in range(1,width-1): #for columns in image
                 progress = progress+1 # invrement progress value
                 neighbourhood = padd_sharp_img[j-1:j+2,k-1:k+2] #neighbourhood of the pixel
                 new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype="float")
-                #print(neighbourhood*filter,np.sum(neighbourhood*filter),new_img_5[j-1,k-1],self.__img_v[j-1,k-1])
                 if(progress%5000==0): #display progress for every 5000 loops
                     self.dialog.setValue(progress) # display the progress
                 if(self.dialog.wasCanceled()): # cancel button is pressed
                     break # stop execution and return to the main window
         self.dialog.setValue(progress) #display the progress using progress bar
         self.__mdfd_img  = new_img_5  # save the final sharpened image
-        # np.clip(self.__mdfd_img,0,255,out=self.__mdfd_img) #clip the values to make them lie in (0,255)
         self.disp("Sharpened Image",1,1)# to display the changed image
         print("Image Sharpened") # Print status to terminal or IDE
 
@@ -324,25 +340,31 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         print("Window closed") # Print status to terminal or IDE
         sys.exit() #exit the application
 
-    def disp(self,txt,flag = 0,scroll = 0): # this method is used to display the transformed image to GUI
-        if (flag == 0): #whether to clear some labels or not is decided by this flag variable
+    def disp(self,txt,flag = 0,scroll = 0,fft=0,img = np.empty_like([256,256])): # this method is used to display the transformed image to GUI
+        if (fft == 0): #whether to clear some labels or not is decided by this flag variable
             self.s2.hide() #to hide the scroll bar
             self.lbl_s3.clear() #to clear the label to show new objects
             self.e2.clear() #to clear the label to show new objects
             self.e2.hide() #to hide the text box
             self.lbl_s1.clear() #to clear the label to show new objects
             self.lbl_s2.clear() #to clear the label to show new objects
-        if (scroll == 0):#if the button other than sharpen is pressed
-            self.s2.setValue(1) #reset the value every time
-        img_pix1 = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img]) #merge the v with h and s using cv.merge
-        img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB) #convert the image to color image
-        pix_img = QtGui.QPixmap(QtGui.QImage(img_color,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888)) # convert opencv image to pixmap to display it to the user
+            if (scroll == 0):#if the button other than sharpen is pressed
+                self.s2.setValue(1) #reset the value every time
+            if (flag == 0 ):
+                img_pix1 = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img]) #merge the v with h and s using cv.merge
+                img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB) #convert the image to color image
+                pix_img = QtGui.QPixmap(QtGui.QImage(img_color,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888)) # convert opencv image to pixmap to display it to the user
+        else:
+            # img_pix1 = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img]) #merge the v with h and s using cv.merge
+            # img_color = cv.cvtColor(img, cv.COLOR_HSV2RGB) #convert the image to color image
+            # img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) #convert the image to color image
+            pix_img = QtGui.QPixmap(QtGui.QImage(img,self.__img_width, self.__img_height,3*self.__img_width))
         self.lbl2.clear() #to clear the label to show new objects
         self.lbl2.setText(txt) #set the text to display
         self.lbl2.resize(300,50) #resize the label to required size
         self.lbl2.move(950,0) #positioning the label
         self.lbl2.show() #show the label
-        pix_img= pix_img.scaled(600,600, QtCore.Qt.KeepAspectRatio)
+        pix_img = pix_img.scaled(600,600, QtCore.Qt.KeepAspectRatio)
         self.lbl3.clear() #to clear the label to show new objects
         self.lbl3.resize(600,600) #resize the label to required size
         self.lbl3.move(720,40) #positioning the label
