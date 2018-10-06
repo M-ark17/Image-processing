@@ -28,6 +28,9 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.__img_width = None # widht of the Image
         self.lbl = QtGui.QLabel(self)  # create a Qlabel object to display input image
         self.lbl1 = QtGui.QLabel(self) # create a Qlabel object to display title for input image
+        self.lbl_ker_img = QtGui.QLabel(self) # create a Qlabel object to display kernel
+        self.lbl_ker = QtGui.QLabel(self)  #create a Qlabel object to display title for kernel
+
         self.lbl2 = QtGui.QLabel(self) # create a Qlabel object to display title for output image
         self.lbl3 = QtGui.QLabel(self) # create a Qlabel object to displat output image
         self.lbl_s1 = QtGui.QLabel(self) # create a Qlabel object to display scroll title "High"
@@ -41,17 +44,17 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         btn.clicked.connect(self.file_open) # go to file_open method when clicked on Upload Image button
         btn.resize(200,40) # resize the button to the required size
         btn.move(500,50 ) # reposition the button at the required position
-        btn1 = QtGui.QPushButton("Find DFT",self)
-        btn1.clicked.connect(self.DFT) # go to DFT method when clicked on Fing DFT
+        btn1 = QtGui.QPushButton("Upload Kernel ",self)
+        btn1.clicked.connect(self.file_open_kernel) # go to DFT method when clicked on Fing DFT
         btn1.resize(200,40) # resize the button to the required size
         btn1.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         btn1.move(500,100 )
-        btn2 = QtGui.QPushButton("Gamma correct",self)
-        btn2.clicked.connect(self.gamma_correct_btn) # go to gamma_correct_btn method when clicked on Gamma correct button
+        btn2 = QtGui.QPushButton("Inverse Filter",self)
+        btn2.clicked.connect(self.inverse_fliter) # go to inverse_fliter method when clicked on Inverse Filter button
         btn2.resize(200,40) # resize the button to the required size
         btn2.move(500,150 ) # reposition the button at the required position
-        btn3 = QtGui.QPushButton("Log transform",self)
-        btn3.clicked.connect(self.log_transform) # go to log_transform method when clicked on Log transform button
+        btn3 = QtGui.QPushButton("Show DFT of Image",self)
+        btn3.clicked.connect(self.show_dft) # go to log_transform method when clicked on Log transform button
         btn3.resize(200,40) # resize the button to the required size
         btn3.move(500,200 ) # reposition the button at the required position
         btn4 = QtGui.QPushButton("Blur Image",self)
@@ -88,11 +91,10 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         name = QtGui.QFileDialog.getOpenFileName(self,'Open File','','Images (*.png *.xpm *.jpg *.jpeg)') #this will open a dialog box to upload image only png,xpm,jpg,jpeg images are supported
         upld_img = QtGui.QImage() # create Qimage object to store the uploaded image data
         self.__ip_img =  cv.imread(str(name),cv.IMREAD_COLOR) # upload the image from the dialog box using imread in opencv library
-        img_hsv = cv.cvtColor(self.__ip_img, cv.COLOR_BGR2HSV) #convert color image to HSV using cvtColor of opencv
         # get image properties.
-        self.__img_h,self.__img_s,self.__img_v = cv.split(img_hsv)
-        self.__img_height,self.__img_width = self.__img_v.shape
-        # print self.__img_v.shape
+        self.__img_b,self.__img_g,self.__img_r = cv.split(self.__ip_img)
+        self.__img_height,self.__img_width = self.__img_r.shape
+        # Image.merge("RGB",(imr,img,imb))
         self.__mdfd_img_lstchg = None
         self.__mdfd_img = None
         self.__mdfd_img_lstchg = self.__img_v # update the last changed value to uploaded image
@@ -100,92 +102,97 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         if upld_img.load(name): # if the image is uploaded properly then upld_img.load will be true
             self.lbl1.clear() # clear the past content in label if any is present
             self.lbl1.setText("Orignal Image") # Set title for the input image to display
-            self.lbl1.move(200,50) # position the title
+            self.lbl1.move(200,140) # position the title
             self.lbl1.show() # show the title
             pixmap = QtGui.QPixmap(upld_img) #convert the opencv image to pixmap to display it on GUI
             self.__pixmap = pixmap.scaled(400, 650, QtCore.Qt.KeepAspectRatio) # scale the pixmap to display it on GUI keep the Aspect Ratio of the original image
             self.lbl.clear() # clear the past content in label if any is present
             self.lbl.resize(400,650) # set the size of the input pixmap to 400*650
-            self.lbl.move(50,0) # position the input pixmap
+            self.lbl.move(50,50) # position the input pixmap
             self.lbl.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
             self.lbl.setScaledContents(False)
             self.lbl.setPixmap(self.__pixmap) # set the pixmap to the label
             self.lbl.show()# show the pixmap as image
             print("Selected Image uploaded") #print status to the terminal or IDE
-            self.dialog = QProgressDialog('In progress please wait...','Cancel', 0, self.__img_v.size, self) # create a progress bar to display the progress of methods we use
-            self.dialog.setWindowModality(Qt.WindowModal)
         else: #if the image is not uploaded then
             print("Could not upload Image") # print status to the terminal or IDE
 
-    def dft(self,ip_img): #function to perform DFT of the image
-        progress = 0#to display progress in progres bar
-        img_height,img_width = ip_img.shape
-        op_img = np.empty_like(ip_img)
-        op_it = np.nditer(op_img, flags=['multi_index'])
-        while not op_it.finished:
-            u = op_it.multi_index[0]
-            v = op_it.multi_index[1]
-            ip_it = np.nditer(ip_img, flags=['multi_index'])
-            while not ip_it.finished:
-                x = ip_it.multi_index[0]
-                y = ip_it.multi_index[1]
-                op_img[u,v] += np.absolute(ip_img[x,y]*np.exp( -2j*np.pi*(u*x/img_height+v*y/img_width)))
-                # print "%d <%s>" % (it[0], it.multi_index),
-                ip_it.iternext()
-            print(u,v,x,y,op_img[u,v])
-            op_it.iternext()
-        return op_img
-    def FFT_matrix(self,N):
+    def file_open_kernel(self): #method to open file
+        name = QtGui.QFileDialog.getOpenFileName(self,'Open File','','Images (*.png *.xpm *.jpg *.jpeg)') #this will open a dialog box to upload image only png,xpm,jpg,jpeg images are supported
+        upld_img = QtGui.QImage() # create Qimage object to store the uploaded image data
+        self.__kernel =  cv.imread(str(name),cv.IMREAD_GRAYSCALE) # upload the image from the dialog box using imread in opencv library
+        # get image properties.
+        self.__kernel_height,self.__kernel_width = self.__kernel.shape
+        # Image.merge("RGB",(imr,img,imb))
+        if upld_img.load(name): # if the image is uploaded properly then upld_img.load will be true
+            self.lbl_ker.clear() # clear the past content in label if any is present
+            self.lbl_ker.setText("kernel") # Set title for the input image to display
+            self.lbl_ker.move(225,10) # position the title
+            self.lbl_ker.show() # show the title
+            pixmap = QtGui.QPixmap(upld_img) #convert the opencv image to pixmap to display it on GUI
+            self.__pixmap = pixmap.scaled(100, 125, QtCore.Qt.KeepAspectRatio) # scale the pixmap to display it on GUI keep the Aspect Ratio of the original image
+            self.lbl_ker_img.clear() # clear the past content in label if any is present
+            self.lbl_ker_img.resize(100,125) # set the size of the input pixmap to 100*125
+            self.lbl_ker_img.move(200,25) # position the input pixmap
+            self.lbl_ker_img.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
+            self.lbl_ker_img.setScaledContents(False)
+            self.lbl_ker_img.setPixmap(self.__pixmap) # set the pixmap to the label
+            self.lbl_ker_img.show()# show the pixmap as image
+            print("Selected Kernel uploaded") #print status to the terminal or IDE
+        else: #if the image is not uploaded then
+            print("Could not upload kernel") # print status to the terminal or IDE
+
+    def FFT_matrix(self,N): #function to compute FFT matrix
         i, j = np.meshgrid(np.arange(N), np.arange(N))
         omega = np.exp( - 2 * np.pi * 1J / N )
         W = np.power( omega, i * j ) / np.sqrt(N)
         return W
-    def DFT(self):# this method is for Histogram Equalization
+
+    def DFT(self,img,ker=0):# this method performs the Discreet fourier Transform
         self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        # self.__mdfd_img = self.dft(self.__mdfd_img)
-        # x = self.__mdfd_img # x is any input data with those dimensions
-        x = cv.cvtColor(self.__ip_img, cv.COLOR_RGB2GRAY)
-        W = self.FFT_matrix(self.__img_height)
-        self.__mdfd_img = W.dot(x).dot(W)
+        if(ker == 1):
+            rows = self.FFT_matrix(img.shape[0])
+            cols = self.FFT_matrix(img.shape[1])
+            img = rows.dot(img).dot(cols)
+            img = np.fft.fftshift(np.absolute(img))
+            print("DFT calculated",np.ceil(np.absolute(img))) # Print status to terminal or IDE
+            # cv.imwrite("test.jpg",img)
+            return img
+        else:
+            x = cv.cvtColor(img, cv.COLOR_RGB2GRAY)
+            rows = self.FFT_matrix(self.__img_height)
+            cols = self.FFT_matrix(self.__img_width)
+            img = rows.dot(x).dot(cols)
+            img = np.fft.fftshift(np.absolute(img))
+            print("DFT calculated",np.ceil(np.absolute(img))) # Print status to terminal or IDE
+            # cv.imwrite("test.jpg",img)
+            return img
 
+    def inverse_fliter(self): # method to do inverse filtering
+        # kernel = np.tile(self.__kernel, ((self.__img_height/self.__kernel_height), (self.__img_width/self.__kernel_width)))
+        rw_add = np.ceil((self.__img_height-self.__kernel_height)/2)
+        rw_add = rw_add.astype(int)
+        col_add = np.ceil((self.__img_width-self.__kernel_width)/2)
+        col_add = col_add.astype(int)
+        padd_kernel = np.append(np.zeros((rw_add,self.__kernel_width)), self.__kernel, axis=0)#padd with zeros
+        padd_kernel = np.append(padd_kernel,np.zeros((rw_add,self.__kernel_width)), axis=0)#padd with zeros
+        padd_kernel = np.append(np.zeros((padd_kernel.shape[0],col_add)), padd_kernel,axis=1)#padd with zeros
+        padd_kernel = np.append(padd_kernel,np.zeros((padd_kernel.shape[0],col_add)),axis=1)#padd with zeros
+        rem_row = self.__img_height-padd_kernel.shape[0]
+        rem_col = self.__img_width -padd_kernel.shape[1]
+        if(rem_row>0):
+            print(rem_row)
+            np.append(np.zeros((rem_row,padd_kernel.shape[1])), padd_kernel, axis=0)#padd with zeros
+        if(rem_col>0):
+            np.append(np.zeros((padd_kernel.shape[0],rem_col)), padd_kernel, axis=1)#padd with zeros
+        print(padd_kernel.shape)
+        print(rem_col,rem_row,"kernel ",padd_kernel.shape," image ",(self.__img_height, self.__img_width))
+        # self.__mdfd_img = kernel
+        self.disp("kernel transformed",0,0,1,self.DFT(padd_kernel,1))
 
-        print("DFT calculated",np.ceil(np.absolute(self.__mdfd_img))) # Print status to terminal or IDE
-        # self.disp("DFT ",0,0,1,np.ceil(np.absolute(self.__mdfd_img)))
-        cv.imwrite("test.jpg", np.absolute(self.__mdfd_img))
-
-    def gamma_correct_btn(self): # method to ask for gamma value when gamma correct button is clicked
-        gamma,ok = QtGui.QInputDialog.getDouble(self,"Gamma value","enter a number") # get the input from the user along with the status
-        if ok: # if the user inputs any value
-            print 'Gamma value = '+str(gamma) # Print status to terminal or IDE
-            self.gamma_correct(gamma) # call the gamma_correct method with the given gamma
-        else: # if user does not give any value
-            print("No input gamma value given") # Print status to terminal or IDE
-
-    def gamma_correct(self,gamma): #method to do gamma correction
-        self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        gamma_correct_img = self.__mdfd_img # store the image data to temporary array
-        new_img_2=np.empty_like(gamma_correct_img) # create a temporary array to store calculated values
-        c = 255 # let c be 1
-        for i in range (256): # for each intensity value
-            idx = (gamma_correct_img == i) #get the indexes with the same intensity values
-            new_intnsty = c*((float(i)/255.0)**(1/gamma)) # apply gamma transform on each intensity level
-            new_img_2[idx] = int(new_intnsty) # store the values in temporary array
-        self.__mdfd_img = new_img_2 # save the gamma corrected image to global variable
-        self.disp("Gamma transformation")# to display the changed image
-        print("Gamma transformation Applied") # Print status to terminal or IDE
-
-    def log_transform(self):
-        self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        log_trnsfrm_img = self.__mdfd_img # temp array to do operations on
-        new_img_3 = np.empty_like(log_trnsfrm_img) # empty array to assign new intensity values
-        c = 47 # let c be 100
-        for i in range (256): # for each instensity value of the image
-            idx = (log_trnsfrm_img == i) # get the indexes with the same intensity levels
-            new_intnsty = float(c*(math.log10(i+1))) # apply log transformation
-            new_img_3[idx] = new_intnsty # assign the new intensity values to the temporary array
-        self.__mdfd_img = new_img_3 # store the modified data to the global variable
-        self.disp("Log transformation")# to display the changed image
-        print("Log transformation Applied") # Print status to terminal or IDE
+    def show_dft(self):
+        self.disp("Log transformation",0,0,1,self.DFT(self.__kernel,1))# to display the changed image
+        print("DFT is shown") # Print status to terminal or IDE
 
     def blur_img_scr_bar(self):
         self.lbl_s3.resize(500,50)#label to display title for output image
@@ -355,10 +362,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
                 img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB) #convert the image to color image
                 pix_img = QtGui.QPixmap(QtGui.QImage(img_color,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888)) # convert opencv image to pixmap to display it to the user
         else:
-            # img_pix1 = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img]) #merge the v with h and s using cv.merge
-            # img_color = cv.cvtColor(img, cv.COLOR_HSV2RGB) #convert the image to color image
-            # img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY) #convert the image to color image
-            pix_img = QtGui.QPixmap(QtGui.QImage(img,self.__img_width, self.__img_height,3*self.__img_width))
+            pix_img = QtGui.QPixmap(QtGui.QImage(img,self.__img_width, self.__img_height,3*self.__img_width,QtGui.QImage.Format_Indexed8))
         self.lbl2.clear() #to clear the label to show new objects
         self.lbl2.setText(txt) #set the text to display
         self.lbl2.resize(300,50) #resize the label to required size
