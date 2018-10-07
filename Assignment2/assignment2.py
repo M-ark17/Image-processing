@@ -30,7 +30,6 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.lbl1 = QtGui.QLabel(self) # create a Qlabel object to display title for input image
         self.lbl_ker_img = QtGui.QLabel(self) # create a Qlabel object to display kernel
         self.lbl_ker = QtGui.QLabel(self)  #create a Qlabel object to display title for kernel
-
         self.lbl2 = QtGui.QLabel(self) # create a Qlabel object to display title for output image
         self.lbl3 = QtGui.QLabel(self) # create a Qlabel object to displat output image
         self.lbl_s1 = QtGui.QLabel(self) # create a Qlabel object to display scroll title "High"
@@ -53,22 +52,22 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         btn2.clicked.connect(self.inverse_fliter) # go to inverse_fliter method when clicked on Inverse Filter button
         btn2.resize(200,40) # resize the button to the required size
         btn2.move(500,150 ) # reposition the button at the required position
-        btn3 = QtGui.QPushButton("Show DFT of Image",self)
-        btn3.clicked.connect(self.show_dft) # go to log_transform method when clicked on Log transform button
+        btn3 = QtGui.QPushButton("Inverse Filter with inbuilt",self)
+        btn3.clicked.connect(self.inv_inbuilt) # go to log_transform method when clicked on Log transform button
         btn3.resize(200,40) # resize the button to the required size
         btn3.move(500,200 ) # reposition the button at the required position
-        btn4 = QtGui.QPushButton("Blur Image",self)
-        btn4.clicked.connect(self.blur_img_scr_bar) # go to blur_img_scr_bar method when clicked on Blur Image button
-        btn4.resize(200,40) # resize the button to the required size
-        btn4.move(500,250 ) # reposition the button at the required position
-        btn5 = QtGui.QPushButton("Sharpening",self)
-        btn5.clicked.connect(self.sharpen_img_scr_bar) # go to sharpen_img_scr_bar method when clicked on Sharpeninge button
-        btn5.resize(200,40) # resize the button to the required size
-        btn5.move(500,300 ) # reposition the button at the required position
-        btn6 = QtGui.QPushButton("Sobel Operator",self)
-        btn6.clicked.connect(self.edge_detect) # go to save_image method when clicked on Sobel operator button
-        btn6.resize(200,40) # resize the button to the required size
-        btn6.move(500,350 ) # reposition the button at the required position
+        # btn4 = QtGui.QPushButton("Blur Image",self)
+        # btn4.clicked.connect(self.blur_img_scr_bar) # go to blur_img_scr_bar method when clicked on Blur Image button
+        # btn4.resize(200,40) # resize the button to the required size
+        # btn4.move(500,250 ) # reposition the button at the required position
+        # btn5 = QtGui.QPushButton("Sharpening",self)
+        # btn5.clicked.connect(self.sharpen_img_scr_bar) # go to sharpen_img_scr_bar method when clicked on Sharpeninge button
+        # btn5.resize(200,40) # resize the button to the required size
+        # btn5.move(500,300 ) # reposition the button at the required position
+        # btn6 = QtGui.QPushButton("Sobel Operator",self)
+        # btn6.clicked.connect(self.edge_detect) # go to save_image method when clicked on Sobel operator button
+        # btn6.resize(200,40) # resize the button to the required size
+        # btn6.move(500,350 ) # reposition the button at the required position
         btn7 = QtGui.QPushButton("Undo last Change",self)
         btn7.clicked.connect(self.undo) # go to undo method when clicked on Undo last Change button
         btn7.resize(200,40) # resize the button to the required size
@@ -142,9 +141,9 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         else: #if the image is not uploaded then
             print("Could not upload kernel") # print status to the terminal or IDE
 
-    def FFT_matrix(self,N): #function to compute FFT matrix
+    def FFT_matrix(self,N,sign=1): #function to compute FFT matrix
         i, j = np.meshgrid(np.arange(N), np.arange(N))
-        omega = np.exp( - 2 * np.pi * 1J / N )
+        omega = np.exp( sign * -2 * np.pi * 1J / N )
         W = np.power( omega, i * j ) / np.sqrt(N)
         return W
 
@@ -155,21 +154,33 @@ class Window(QtGui.QMainWindow): #create a class to display a window
             cols = self.FFT_matrix(img.shape[1])
             img = rows.dot(img).dot(cols)
             img = np.fft.fftshift(np.absolute(img))
-            print("DFT calculated",np.ceil(np.absolute(img))) # Print status to terminal or IDE
-            # cv.imwrite("test.jpg",img)
+            # print("DFT calculated",np.ceil(np.absolute(img))) # Print status to terminal or IDE
+            cv.imwrite("DFT.jpg",np.absolute(img))
             return img
         else:
-            x = cv.cvtColor(img, cv.COLOR_RGB2GRAY)
+            b,g,r = cv.split(img)
             rows = self.FFT_matrix(self.__img_height)
             cols = self.FFT_matrix(self.__img_width)
-            img = rows.dot(x).dot(cols)
-            img = np.fft.fftshift(np.absolute(img))
-            print("DFT calculated",np.ceil(np.absolute(img))) # Print status to terminal or IDE
-            # cv.imwrite("test.jpg",img)
-            return img
+            b = rows.dot(b).dot(cols)
+            # b = np.fft.fftshift(np.absolute(b))
+            g = rows.dot(g).dot(cols)
+            # g = np.fft.fftshift(np.absolute(g))
+            r = rows.dot(r).dot(cols)
+            # r = np.fft.fftshift(np.absolute(r))
+
+            # print("DFT calculated",np.ceil(np.absolute(img))) # Print status to terminal or IDE
+            # cv.imwrite("DFT.jpg",img)
+            return b,g,r
+    def IDFT(self,img,ker=0):# this method performs the Inverse Discreet fourier Transform
+        rows = self.FFT_matrix(img.shape[0],-1)
+        cols = self.FFT_matrix(img.shape[1],-1)
+        img = rows.dot(img).dot(cols)
+        # img = np.fft.fftshift(np.absolute(img))
+        # print("DFT calculated",np.ceil(np.absolute(img))) # Print status to terminal or IDE
+        cv.imwrite("IDFT.jpg",np.absolute(img))
+        return img
 
     def inverse_fliter(self): # method to do inverse filtering
-        # kernel = np.tile(self.__kernel, ((self.__img_height/self.__kernel_height), (self.__img_width/self.__kernel_width)))
         rw_add = np.ceil((self.__img_height-self.__kernel_height)/2)
         rw_add = rw_add.astype(int)
         col_add = np.ceil((self.__img_width-self.__kernel_width)/2)
@@ -182,17 +193,62 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         rem_col = self.__img_width -padd_kernel.shape[1]
         if(rem_row>0):
             print(rem_row)
-            np.append(np.zeros((rem_row,padd_kernel.shape[1])), padd_kernel, axis=0)#padd with zeros
+            self.__ip_img = np.delete(self.__ip_img, rem_row, 0)
+            self.__img_height -= rem_row
+            # padd_kernel = np.append(np.zeros((1,padd_kernel.shape[1])), padd_kernel, axis=0)#padd with zeros
         if(rem_col>0):
-            np.append(np.zeros((padd_kernel.shape[0],rem_col)), padd_kernel, axis=1)#padd with zeros
-        print(padd_kernel.shape)
-        print(rem_col,rem_row,"kernel ",padd_kernel.shape," image ",(self.__img_height, self.__img_width))
-        # self.__mdfd_img = kernel
-        self.disp("kernel transformed",0,0,1,self.DFT(padd_kernel,1))
+            self.__ip_img = np.delete(self.__ip_img, rem_col, 1)
+            self.__img_width -= rem_col
+            # padd_kernel = np.append(np.zeros((padd_kernel.shape[0],rem_col)), padd_kernel, axis=1)#padd with zeros
+        # inv_filtered = self.DFT(self.__ip_img)/self.DFT(padd_kernel,1)
+        H = self.DFT(padd_kernel,1)
+        B,G,R = self.DFT(self.__ip_img)
+        INV_B = B/H
+        INV_G = G/H
+        INV_R = R/H
 
-    def show_dft(self):
-        self.disp("Log transformation",0,0,1,self.DFT(self.__kernel,1))# to display the changed image
-        print("DFT is shown") # Print status to terminal or IDE
+        ib = self.IDFT(INV_B)
+        ig = self.IDFT(INV_G)
+        ir = self.IDFT(INV_R)
+        self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
+        self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
+        self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
+        # self.__mdfd_img = kernel
+        self.disp("Inverse Filter Applied")
+
+    def inv_inbuilt(self):
+        rw_add = np.ceil((self.__img_height-self.__kernel_height)/2)
+        rw_add = rw_add.astype(int)
+        col_add = np.ceil((self.__img_width-self.__kernel_width)/2)
+        col_add = col_add.astype(int)
+        padd_kernel = np.append(np.zeros((rw_add,self.__kernel_width)), self.__kernel, axis=0)#padd with zeros
+        padd_kernel = np.append(padd_kernel,np.zeros((rw_add,self.__kernel_width)), axis=0)#padd with zeros
+        padd_kernel = np.append(np.zeros((padd_kernel.shape[0],col_add)), padd_kernel,axis=1)#padd with zeros
+        padd_kernel = np.append(padd_kernel,np.zeros((padd_kernel.shape[0],col_add)),axis=1)#padd with zeros
+        rem_row = self.__img_height-padd_kernel.shape[0]
+        rem_col = self.__img_width -padd_kernel.shape[1]
+        if(rem_row>0):
+            print(rem_row)
+            self.__ip_img = np.delete(self.__ip_img, rem_row, 0)
+            self.__img_height -= rem_row
+
+        if(rem_col>0):
+            self.__ip_img = np.delete(self.__ip_img, rem_col, 1)
+            self.__img_width -= rem_col
+        H = np.fft.fft2(padd_kernel)
+        self.__img_b,self.__img_g,self.__img_r = cv.split(self.__ip_img)
+        B = np.fft.fft2(self.__img_b)
+        G = np.fft.fft2(self.__img_g)
+        R = np.fft.fft2(self.__img_r)
+        INV_B = B/H
+        INV_G = G/H
+        INV_R = R/H
+        self.__img_b = (np.absolute(np.fft.ifft2(INV_B))).astype(self.__ip_img.dtype)
+        self.__img_g = (np.absolute(np.fft.ifft2(INV_G))).astype(self.__ip_img.dtype)
+        self.__img_r = (np.absolute(np.fft.ifft2(INV_R))).astype(self.__ip_img.dtype)
+
+        self.disp("kernel transformed")
+        print("Inverse Filtering using inbuilt functions ") # Print status to terminal or IDE
 
     def blur_img_scr_bar(self):
         self.lbl_s3.resize(500,50)#label to display title for output image
@@ -242,86 +298,6 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.disp("Blurred Image",1)# to display the changed image
         print("Image Blurred") # Print status to terminal or IDE
 
-    def sharpen_img_scr_bar(self):
-        self.lbl_s1.resize(500,50)#label to display title for output image
-        self.lbl_s1.setText("Please Enter an Integer value Sigma for Laplacian Kernel")#title text
-        self.lbl_s1.move(100,590) #positioning
-        self.lbl_s1.show() #display title
-        self.e2.setValidator(QIntValidator())#text box setting to allow only integer values
-        self.e2.move(500,600) #positioning
-        btn_sharp_img = QPushButton('OK', self) #button to click ok to start operaion on the input
-        btn_sharp_img.resize(50,30) #resize the button
-        btn_sharp_img.move(610, 600) #positioning
-        btn_sharp_img.show() #display button
-        self.e2.show() #display text box
-        btn_sharp_img.clicked.connect(lambda: self.sharpen_img(int(self.e2.text()))) #call sharpen_img when clicked
-
-    def sharpen_img(self,sigma): # to sharpen the image
-        self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        filter = np.zeros((3,3), dtype=np.float) #initialise filter with zeros
-        sharp_img = self.__mdfd_img #take image data to a temp variable
-        padd_sharp_img = np.insert(sharp_img,[0],0,axis = 0)  #padd zeros to the image
-        padd_sharp_img = np.insert(padd_sharp_img,[self.__img_height+1],0,axis = 0) #padd zeros to the image
-        padd_sharp_img = np.insert(padd_sharp_img,[0],0,axis = 1) #padd zeros to the image
-        padd_sharp_img = np.insert(padd_sharp_img,[self.__img_width+1],0,axis = 1) #padd zeros to the image
-        new_img_5 = np.empty_like(sharp_img) #temp array to store new values
-        filter = (np.array([[-1.0,-1.0,-1.0],[-1.0,8.0,-1.0],[-1.0,-1.0,-1.0]],dtype ="float")*sigma/10.0)+np.array([[0.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,0.0]],dtype ="float")
-        # filter = np.array([[0.0,1.0,0.0],[1.0,-4.0,1.0],[0.0,1.0,0.0]],dtype = "float")
-        neighbourhood = np.zeros((3,3),dtype = "float") # initialise window
-        # new_img_5 = cv.filter2D(sharp_img,-1,filter)
-        progress = 0 #initialise progress variable
-        self.dialog.forceShow() #show the progress bar
-        height,width = padd_sharp_img.shape
-
-        for j in range(1,height-1): #for row in image
-            for k in range(1,width-1): #for columns in image
-                progress = progress+1 # invrement progress value
-                neighbourhood = padd_sharp_img[j-1:j+2,k-1:k+2] #neighbourhood of the pixel
-                new_img_5[j-1,k-1] = np.sum(neighbourhood*filter,dtype="float")
-                if(progress%5000==0): #display progress for every 5000 loops
-                    self.dialog.setValue(progress) # display the progress
-                if(self.dialog.wasCanceled()): # cancel button is pressed
-                    break # stop execution and return to the main window
-        self.dialog.setValue(progress) #display the progress using progress bar
-        self.__mdfd_img  = new_img_5  # save the final sharpened image
-        self.disp("Sharpened Image",1,1)# to display the changed image
-        print("Image Sharpened") # Print status to terminal or IDE
-
-    def edge_detect(self):
-        self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        filter_6 = np.zeros((3,3), dtype=np.float) #filter for edge detection
-        filter_7 = np.zeros((3,3), dtype=np.float) #filter for edge detection
-        blur_img = self.__mdfd_img #take the image data to a empty array
-        padd_blur_img = np.append(np.zeros((1,self.__img_width)), blur_img, axis=0) #padd zeros to the image
-        padd_blur_img = np.append(padd_blur_img,np.zeros((1,self.__img_width)), axis=0) #padd zeros to the image
-        padd_blur_img = np.append(np.zeros((self.__img_height+2,1)), padd_blur_img,axis=1) #padd zeros to the image
-        padd_blur_img = np.append(padd_blur_img,np.zeros((self.__img_height+2,1)),axis=1) #padd zeros to the image
-        new_img_7 = np.empty_like(blur_img)  # empty array to store the computed data
-        new_img_6 = np.empty_like(blur_img) # empty array to store the computed data
-        new_img_final = np.empty_like(blur_img) # store final image data
-        filter_x = np.array([[1.0,0.0,-1.0],[2.0,0.0,-2.0],[1.0,-0.0,-1.0]]) #filter to detect horizontal edges
-        filter_y = np.array([[1.0,2.0,1.0],[0.0,0.0,0.0],[-1.0,-2.0,-1.0]]) #filter to detect vertical edges
-        # print(padd_blur_img[:,0],padd_blur_img[0,:],padd_blur_img[self.__img_height+1,:],padd_blur_img[:,self.__img_width+1])
-        neighbourhood = np.zeros((3,3)) #window of size 3*3
-        progress = 0 #variable to display progress
-        self.dialog.forceShow() # show the progress dialog box
-        for j in range(1,self.__img_height+1): #for rows in image
-            for k in range(1,self.__img_width+1): #for columns in image
-                neighbourhood = padd_blur_img[j-1:j+2,k-1:k+2] # get pixels intensites of the neighbourhood
-                new_img_7[j-1,k-1] = np.sum(neighbourhood*filter_x,dtype=np.float) #convolve with the filter to get horizontal edges
-                new_img_6[j-1,k-1] = np.sum(neighbourhood*filter_y,dtype=np.float) #convolve with the filter to get vertical edges
-                progress = progress + 1 #increment the progress value
-                new_img_final[j-1,k-1] = new_img_7[j-1,k-1]+new_img_6[j-1,k-1] #add the horizontal and vertical edge
-                if(progress%5000==0): # display the status every 5000 loops
-                    self.dialog.setValue(progress) #set the progress value
-                if(self.dialog.wasCanceled()): #if the cancel button is pressed
-                    break # stop the operation
-        self.dialog.setValue(progress)
-        np.clip(new_img_final,0,70 , out = new_img_final) #keep the intensites in the range(0,255)
-        self.__mdfd_img = new_img_final #store the transformed data in the global variable
-        self.disp("Image edges")# to display the changed image
-        print("Image Edges Detected") # Print status to terminal or IDE
-
     def undoall(self): # to undo all changes done on the image
         self.__mdfd_img = self.__img_v # change the data in the current changed data to original image data
         # self.__mdfd_img_lstchg = self.__img_v
@@ -335,8 +311,8 @@ class Window(QtGui.QMainWindow): #create a class to display a window
 
     def save_image(self): # this method is used for saving the image to the file
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','Images (*.png *.xpm *.jpg *.jpeg)') # tp open a dialog box to input image
-        itos = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img])#merge intensity with the hue and saturation
-        itos = cv.cvtColor(itos, cv.COLOR_HSV2RGB)#convert hsv to rgb image
+        itos = cv.merge([self.__img_b,self.__img_g, self.__img_r])#merge intensity with the hue and saturation
+        itos = cv.cvtColor(itos, cv.COLOR_BGR2RGB)#convert hsv to rgb image
         img_to_save = QtGui.QPixmap(QtGui.QImage(itos,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888)) # convert opencv image to pixmap to display in gui
         if img_to_save.save(name):#if the image is saved
             print("Image Saved To file") # Print status to terminal or IDE
@@ -358,9 +334,15 @@ class Window(QtGui.QMainWindow): #create a class to display a window
             if (scroll == 0):#if the button other than sharpen is pressed
                 self.s2.setValue(1) #reset the value every time
             if (flag == 0 ):
-                img_pix1 = cv.merge([self.__img_h,self.__img_s, self.__mdfd_img]) #merge the v with h and s using cv.merge
-                img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB) #convert the image to color image
-                pix_img = QtGui.QPixmap(QtGui.QImage(img_color,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888)) # convert opencv image to pixmap to display it to the user
+                img_pix1 = cv.merge((self.__img_b,self.__img_g, self.__img_r)) #merge the v with h and s using cv.merge
+                cv.imwrite('Blue Channel.jpg',self.__img_b)
+                cv.imwrite('Green Channel.jpg',self.__img_g)
+                cv.imwrite('Red Channel.jpg',self.__img_r)
+                cv.imwrite('Merged Output.jpg',img_pix1)
+                # img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB) #convert the image to color image
+                # img_pix1 = np.dstack((self.__img_b,self.__img_g, self.__img_r))
+                img_pix1 = cv.cvtColor(img_pix1, cv.COLOR_BGR2RGB)
+                pix_img = QtGui.QPixmap(QtGui.QImage(img_pix1,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888)) # convert opencv image to pixmap to display it to the user
         else:
             pix_img = QtGui.QPixmap(QtGui.QImage(img,self.__img_width, self.__img_height,3*self.__img_width,QtGui.QImage.Format_Indexed8))
         self.lbl2.clear() #to clear the label to show new objects
