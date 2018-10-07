@@ -153,31 +153,29 @@ class Window(QtGui.QMainWindow): #create a class to display a window
             rows = self.FFT_matrix(img.shape[0])
             cols = self.FFT_matrix(img.shape[1])
             img = rows.dot(img).dot(cols)
-            img = np.fft.fftshift(np.absolute(img))
-            # print("DFT calculated",np.ceil(np.absolute(img))) # Print status to terminal or IDE
-            cv.imwrite("DFT.jpg",np.absolute(img))
+            img = np.fft.fftshift(img)
+            # cv.imwrite("DFT.jpg",np.absolute(img))
             return img
         else:
             b,g,r = cv.split(img)
             rows = self.FFT_matrix(self.__img_height)
             cols = self.FFT_matrix(self.__img_width)
             b = rows.dot(b).dot(cols)
-            # b = np.fft.fftshift(np.absolute(b))
+            b = np.fft.fftshift(b)
             g = rows.dot(g).dot(cols)
-            # g = np.fft.fftshift(np.absolute(g))
+            g = np.fft.fftshift(g)
             r = rows.dot(r).dot(cols)
-            # r = np.fft.fftshift(np.absolute(r))
+            r = np.fft.fftshift(r)
 
-            # print("DFT calculated",np.ceil(np.absolute(img))) # Print status to terminal or IDE
             # cv.imwrite("DFT.jpg",img)
             return b,g,r
     def IDFT(self,img,ker=0):# this method performs the Inverse Discreet fourier Transform
         rows = self.FFT_matrix(img.shape[0],-1)
         cols = self.FFT_matrix(img.shape[1],-1)
         img = rows.dot(img).dot(cols)
-        # img = np.fft.fftshift(np.absolute(img))
+        img = np.fft.ifftshift(img)
         # print("DFT calculated",np.ceil(np.absolute(img))) # Print status to terminal or IDE
-        cv.imwrite("IDFT.jpg",np.absolute(img))
+        # cv.imwrite("IDFT.jpg",np.absolute(img))
         return img
 
     def inverse_fliter(self): # method to do inverse filtering
@@ -192,15 +190,13 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         rem_row = self.__img_height-padd_kernel.shape[0]
         rem_col = self.__img_width -padd_kernel.shape[1]
         if(rem_row>0):
-            print(rem_row)
             self.__ip_img = np.delete(self.__ip_img, rem_row, 0)
             self.__img_height -= rem_row
-            # padd_kernel = np.append(np.zeros((1,padd_kernel.shape[1])), padd_kernel, axis=0)#padd with zeros
+
         if(rem_col>0):
             self.__ip_img = np.delete(self.__ip_img, rem_col, 1)
             self.__img_width -= rem_col
-            # padd_kernel = np.append(np.zeros((padd_kernel.shape[0],rem_col)), padd_kernel, axis=1)#padd with zeros
-        # inv_filtered = self.DFT(self.__ip_img)/self.DFT(padd_kernel,1)
+
         H = self.DFT(padd_kernel,1)
         B,G,R = self.DFT(self.__ip_img)
         INV_B = B/H
@@ -213,7 +209,6 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
         self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
         self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
-        # self.__mdfd_img = kernel
         self.disp("Inverse Filter Applied")
 
     def inv_inbuilt(self):
@@ -335,10 +330,10 @@ class Window(QtGui.QMainWindow): #create a class to display a window
                 self.s2.setValue(1) #reset the value every time
             if (flag == 0 ):
                 img_pix1 = cv.merge((self.__img_b,self.__img_g, self.__img_r)) #merge the v with h and s using cv.merge
-                cv.imwrite('Blue Channel.jpg',self.__img_b)
-                cv.imwrite('Green Channel.jpg',self.__img_g)
-                cv.imwrite('Red Channel.jpg',self.__img_r)
-                cv.imwrite('Merged Output.jpg',img_pix1)
+                # cv.imwrite('Blue Channel.jpg',self.__img_b)
+                # cv.imwrite('Green Channel.jpg',self.__img_g)
+                # cv.imwrite('Red Channel.jpg',self.__img_r)
+                # cv.imwrite('Merged Output.jpg',img_pix1)
                 # img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB) #convert the image to color image
                 # img_pix1 = np.dstack((self.__img_b,self.__img_g, self.__img_r))
                 img_pix1 = cv.cvtColor(img_pix1, cv.COLOR_BGR2RGB)
