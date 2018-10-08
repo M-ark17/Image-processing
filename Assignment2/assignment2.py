@@ -52,14 +52,14 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         btn2.clicked.connect(self.inverse_fliter) # go to inverse_fliter method when clicked on Inverse Filter button
         btn2.resize(200,40) # resize the button to the required size
         btn2.move(500,150 ) # reposition the button at the required position
-        btn3 = QtGui.QPushButton("Inverse Filter with inbuilt",self)
+        btn3 = QtGui.QPushButton("Get blur image",self)
         btn3.clicked.connect(self.inv_inbuilt) # go to log_transform method when clicked on Log transform button
         btn3.resize(200,40) # resize the button to the required size
         btn3.move(500,200 ) # reposition the button at the required position
-        # btn4 = QtGui.QPushButton("Blur Image",self)
-        # btn4.clicked.connect(self.blur_img_scr_bar) # go to blur_img_scr_bar method when clicked on Blur Image button
-        # btn4.resize(200,40) # resize the button to the required size
-        # btn4.move(500,250 ) # reposition the button at the required position
+        btn4 = QtGui.QPushButton("Radial Filtering",self)
+        btn4.clicked.connect(self.radial_filter_threshold) # go to blur_img_scr_bar method when clicked on Blur Image button
+        btn4.resize(200,40) # resize the button to the required size
+        btn4.move(500,250 ) # reposition the button at the required position
         # btn5 = QtGui.QPushButton("Sharpening",self)
         # btn5.clicked.connect(self.sharpen_img_scr_bar) # go to sharpen_img_scr_bar method when clicked on Sharpeninge button
         # btn5.resize(200,40) # resize the button to the required size
@@ -178,7 +178,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         # cv.imwrite("IDFT.jpg",np.absolute(img))
         return img
 
-    def inverse_fliter(self): # method to do inverse filtering
+    def inverse_fliter(self,sigma = -1): # method to do inverse filtering
         rw_add = np.ceil((self.__img_height-self.__kernel_height)/2)
         rw_add = rw_add.astype(int)
         col_add = np.ceil((self.__img_width-self.__kernel_width)/2)
@@ -198,6 +198,11 @@ class Window(QtGui.QMainWindow): #create a class to display a window
             self.__img_width -= rem_col
 
         H = self.DFT(padd_kernel,1)
+        if(sigma != -1):
+            for index, x in np.ndenumerate(H):
+                if (np.sqrt(index[0]*index[0]+index[1]*index[1])>sigma):
+                    H[index[0],index[0]] = 1
+                    # print(index, x,H[index[0],index[0]])
         B,G,R = self.DFT(self.__ip_img)
         INV_B = B/H
         INV_G = G/H
@@ -223,31 +228,23 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         rem_row = self.__img_height-padd_kernel.shape[0]
         rem_col = self.__img_width -padd_kernel.shape[1]
         if(rem_row>0):
-            print(rem_row)
             self.__ip_img = np.delete(self.__ip_img, rem_row, 0)
             self.__img_height -= rem_row
 
         if(rem_col>0):
             self.__ip_img = np.delete(self.__ip_img, rem_col, 1)
             self.__img_width -= rem_col
-        H = np.fft.fft2(padd_kernel)
-        self.__img_b,self.__img_g,self.__img_r = cv.split(self.__ip_img)
-        B = np.fft.fft2(self.__img_b)
-        G = np.fft.fft2(self.__img_g)
-        R = np.fft.fft2(self.__img_r)
-        INV_B = B/H
-        INV_G = G/H
-        INV_R = R/H
-        self.__img_b = (np.absolute(np.fft.ifft2(INV_B))).astype(self.__ip_img.dtype)
-        self.__img_g = (np.absolute(np.fft.ifft2(INV_G))).astype(self.__ip_img.dtype)
-        self.__img_r = (np.absolute(np.fft.ifft2(INV_R))).astype(self.__ip_img.dtype)
-
-        self.disp("kernel transformed")
+        # self.__kernel = np.ones((5,5),np.float32)/25
+        print(self.__kernel.shape)
+        motion_blr = cv.filter2D(self.__ip_img,-1,self.__kernel/np.sum(self.__kernel))
+        self.__img_b,self.__img_g,self.__img_r = cv.split(motion_blr)
+        cv.imwrite("motion_blr.jpg",motion_blr)
+        self.disp("Blurred Image")
         print("Inverse Filtering using inbuilt functions ") # Print status to terminal or IDE
 
-    def blur_img_scr_bar(self):
+    def radial_filter_threshold(self):
         self.lbl_s3.resize(500,50)#label to display title for output image
-        self.lbl_s3.setText("Please Enter an Integer value Sigma for Gaussian Blur")#title text
+        self.lbl_s3.setText("Please Enter an Integer value Threshold")#title text
         self.lbl_s3.move(100,590) #positioning
         self.lbl_s3.show() #display title
         self.e2.setValidator(QIntValidator())#text box setting to allow only integer values
@@ -257,41 +254,8 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         btn_blur_img.move(610, 600) #positioning
         btn_blur_img.show() #display button
         self.e2.show() #display text box
-        btn_blur_img.clicked.connect(lambda: self.blur_img(int(self.e2.text()))) #call blur_img when clicked
+        btn_blur_img.clicked.connect(lambda: self.inverse_fliter(int(self.e2.text()))) #call blur_img when clicked
 
-    def blur_img(self,sigma):
-        self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
-        x_count = -1#initialise
-        y_count = -1#initialise
-        filter = np.zeros((2*sigma+1,2*sigma+1), dtype=np.float) #empty filter kernel
-        blur_img = self.__mdfd_img#take the data to temp array
-        padd_blur_img = np.append(np.zeros((sigma,self.__img_width)), blur_img, axis=0)#padd with zeros
-        padd_blur_img = np.append(padd_blur_img,np.zeros((sigma,self.__img_width)), axis=0)#padd with zeros
-        padd_blur_img = np.append(np.zeros((self.__img_height+2*sigma,sigma)), padd_blur_img,axis=1)#padd with zeros
-        padd_blur_img = np.append(padd_blur_img,np.zeros((self.__img_height+2*sigma,sigma)),axis=1)#padd with zeros
-        new_img_4 = np.empty_like(blur_img)#empty array for storing the output
-        for x in range(-sigma,sigma+1):#for the rows of the filter
-            x_count+=1
-            y_count = -1
-            for y in range(-sigma,sigma+1):#for the columns of the filter
-                y_count+=1
-                filter[x_count,y_count] = math.exp(-(x**2.0+y**2.0)/(2.0*sigma*sigma))#compute the gaussian blur kernel
-        neighbourhood = np.zeros((2*sigma+1,2*sigma+1))#window
-        progress = 0#to display progress in progres bar
-        self.dialog.forceShow() # show the progress bar
-        for j in range(sigma,self.__img_height+sigma):#for the rows of the image
-            for k in range(sigma,self.__img_width+sigma): #for the columns of the images
-                neighbourhood = padd_blur_img[j-sigma:j+sigma+1,k-sigma:k+sigma+1]#take the pixels in neighbourhood of the pixel
-                new_img_4[j-sigma,k-sigma] = np.sum(neighbourhood*filter,dtype=np.float)/np.sum(filter,dtype=np.float)#multiply window with filter and average over the filter
-                progress = progress + 1#increment the status
-                if(progress%5000==0):#display progress every 5000 loops
-                    self.dialog.setValue(progress)#to display progress
-                if(self.dialog.wasCanceled()):#if the cancel button is pressed
-                    break # stop the loog
-        self.dialog.setValue(progress) # set the progress
-        self.__mdfd_img = new_img_4 #store the computed values in global variable
-        self.disp("Blurred Image",1)# to display the changed image
-        print("Image Blurred") # Print status to terminal or IDE
 
     def undoall(self): # to undo all changes done on the image
         self.__mdfd_img = self.__img_v # change the data in the current changed data to original image data
@@ -330,10 +294,10 @@ class Window(QtGui.QMainWindow): #create a class to display a window
                 self.s2.setValue(1) #reset the value every time
             if (flag == 0 ):
                 img_pix1 = cv.merge((self.__img_b,self.__img_g, self.__img_r)) #merge the v with h and s using cv.merge
-                # cv.imwrite('Blue Channel.jpg',self.__img_b)
-                # cv.imwrite('Green Channel.jpg',self.__img_g)
-                # cv.imwrite('Red Channel.jpg',self.__img_r)
-                # cv.imwrite('Merged Output.jpg',img_pix1)
+                cv.imwrite('Blue Channel.jpg',self.__img_b)
+                cv.imwrite('Green Channel.jpg',self.__img_g)
+                cv.imwrite('Red Channel.jpg',self.__img_r)
+                cv.imwrite('Merged Output.jpg',img_pix1)
                 # img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB) #convert the image to color image
                 # img_pix1 = np.dstack((self.__img_b,self.__img_g, self.__img_r))
                 img_pix1 = cv.cvtColor(img_pix1, cv.COLOR_BGR2RGB)

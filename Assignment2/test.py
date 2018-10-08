@@ -1,7 +1,8 @@
 # # 08-May-2015, Behzad Tabibian
 #
 import numpy as np
-import scipy.io
+import cv2 as cv
+import scipy.signal
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 #
@@ -69,6 +70,14 @@ import matplotlib.cm as cm
 # def plot(i=[0,ker.shape[0]-1]):
 #   plt.figure(figsize=(14,14))
 #   plt.imshow(ker[i,:].T*5.0,interpolation='nearest',cmap=cm.Greys_r)
-a = 800
-b = 21
-print(np.remainder(a,b))
+# a = 800
+# b = 21
+# print(np.remainder(a,b))
+
+
+kernel = cv.imread("kernel.png",cv.IMREAD_GRAYSCALE)
+img = cv.imread("GroundTruth1_1_1.jpg",cv.IMREAD_COLOR)
+# kernel = kernel
+motion_blr = cv.filter2D(img,-1,kernel)
+
+cv.imwrite("blur_img.jpg",img)
