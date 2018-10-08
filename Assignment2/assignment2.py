@@ -49,7 +49,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         btn1.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         btn1.move(500,100 )
         btn2 = QtGui.QPushButton("Inverse Filter",self)
-        btn2.clicked.connect(self.inverse_fliter) # go to inverse_fliter method when clicked on Inverse Filter button
+        btn2.clicked.connect(lambda: self.inverse_fliter(-1)) # go to inverse_fliter method when clicked on Inverse Filter button
         btn2.resize(200,40) # resize the button to the required size
         btn2.move(500,150 ) # reposition the button at the required position
         btn3 = QtGui.QPushButton("Get blur image",self)
@@ -202,7 +202,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
             for index, x in np.ndenumerate(H):
                 if (np.sqrt(index[0]*index[0]+index[1]*index[1])>sigma):
                     H[index[0],index[0]] = 1
-                    # print(index, x,H[index[0],index[0]])
+            print("Radial")
         B,G,R = self.DFT(self.__ip_img)
         INV_B = B/H
         INV_G = G/H
@@ -215,6 +215,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
         self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
         self.disp("Inverse Filter Applied")
+        print("Inverse Filter Applied")
 
     def inv_inbuilt(self):
         rw_add = np.ceil((self.__img_height-self.__kernel_height)/2)
@@ -294,10 +295,10 @@ class Window(QtGui.QMainWindow): #create a class to display a window
                 self.s2.setValue(1) #reset the value every time
             if (flag == 0 ):
                 img_pix1 = cv.merge((self.__img_b,self.__img_g, self.__img_r)) #merge the v with h and s using cv.merge
-                cv.imwrite('Blue Channel.jpg',self.__img_b)
-                cv.imwrite('Green Channel.jpg',self.__img_g)
-                cv.imwrite('Red Channel.jpg',self.__img_r)
-                cv.imwrite('Merged Output.jpg',img_pix1)
+                # cv.imwrite('Blue Channel.jpg',self.__img_b)
+                # cv.imwrite('Green Channel.jpg',self.__img_g)
+                # cv.imwrite('Red Channel.jpg',self.__img_r)
+                # cv.imwrite('Merged Output.jpg',img_pix1)
                 # img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB) #convert the image to color image
                 # img_pix1 = np.dstack((self.__img_b,self.__img_g, self.__img_r))
                 img_pix1 = cv.cvtColor(img_pix1, cv.COLOR_BGR2RGB)
