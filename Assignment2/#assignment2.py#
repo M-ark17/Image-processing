@@ -36,12 +36,9 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.lbl_s2 = QtGui.QLabel(self) # create a Qlabel object to display scroll title "Low"
         self.lbl_s3 = QtGui.QLabel(self) # create a Qlabel object to display text for text editor
         self.lbl_s4 = QtGui.QLabel(self) # create a Qlabel object to display text for text editor
-        self.lbl_s5 = QtGui.QLabel(self) # create a Qlabel object to display text for text editor
         self.s2 = QtGui.QScrollBar(self) # create a QScrollBar object to display scrollbar
         self.e2 = QtGui.QLineEdit(self) # create a QLineEdit object to display scroll title
         self.e3 = QtGui.QLineEdit(self) # create a QLineEdit object to display scroll title
-        self.e4 = QtGui.QLineEdit(self) # create a QLineEdit object to display scroll title
-
 
     def home(self): # home method of the QMainWindow
         btn = QtGui.QPushButton("Upload Image",self) # button for uploading image
@@ -73,12 +70,12 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         # btn6.clicked.connect(self.edge_detect) # go to save_image method when clicked on Sobel operator button
         # btn6.resize(200,40) # resize the button to the required size
         # btn6.move(500,350 ) # reposition the button at the required position
-        btn7 = QtGui.QPushButton("LS Filtering",self)
-        btn7.clicked.connect(self.ls_filtering_gamma) # go to undo method when clicked on Undo last Change button
+        btn7 = QtGui.QPushButton("Undo last Change",self)
+        btn7.clicked.connect(self.undo) # go to undo method when clicked on Undo last Change button
         btn7.resize(200,40) # resize the button to the required size
         btn7.move(500,400 ) # reposition the button at the required position
-        btn8 = QtGui.QPushButton("Calculate Metrics ",self)
-        btn8.clicked.connect(self.metrics) # go to undoall method when clicked on Undo All Changes button
+        btn8 = QtGui.QPushButton("Undo All Changes",self)
+        btn8.clicked.connect(self.undoall) # go to undoall method when clicked on Undo All Changes button
         btn8.resize(200,40) # resize the button to the required size
         btn8.move(500,450 ) # reposition the button at the required position
         btn9 = QtGui.QPushButton("Save Image",self)
@@ -183,17 +180,17 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         # cv.imwrite("IDFT.jpg",np.absolute(img))
         return img
 
-    def padder(self,img):
-        rw_add = np.ceil((self.__img_height-img.shape[0])/2)
+    def inverse_fliter(self,sigma = -1): # method to do inverse filtering
+        rw_add = np.ceil((self.__img_height-self.__kernel_height)/2)
         rw_add = rw_add.astype(int)
-        col_add = np.ceil((self.__img_width-img.shape[1])/2)
+        col_add = np.ceil((self.__img_width-self.__kernel_width)/2)
         col_add = col_add.astype(int)
-        padd_img = np.append(np.zeros((rw_add,img.shape[1])), img, axis=0)#padd with zeros
-        padd_img = np.append(padd_img,np.zeros((rw_add,padd_img.shape[1])), axis=0)#padd with zeros
-        padd_img = np.append(np.zeros((padd_img.shape[0],col_add)), padd_img,axis=1)#padd with zeros
-        padd_img = np.append(padd_img,np.zeros((padd_img.shape[0],col_add)),axis=1)#padd with zeros
-        rem_row = self.__img_height-padd_img.shape[0]
-        rem_col = self.__img_width -padd_img.shape[1]
+        padd_kernel = np.append(np.zeros((rw_add,self.__kernel_width)), self.__kernel, axis=0)#padd with zeros
+        padd_kernel = np.append(padd_kernel,np.zeros((rw_add,self.__kernel_width)), axis=0)#padd with zeros
+        padd_kernel = np.append(np.zeros((padd_kernel.shape[0],col_add)), padd_kernel,axis=1)#padd with zeros
+        padd_kernel = np.append(padd_kernel,np.zeros((padd_kernel.shape[0],col_add)),axis=1)#padd with zeros
+        rem_row = self.__img_height-padd_kernel.shape[0]
+        rem_col = self.__img_width -padd_kernel.shape[1]
         if(rem_row>0):
             self.__ip_img = np.delete(self.__ip_img, rem_row, 0)
             self.__img_height -= rem_row
@@ -201,24 +198,21 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         if(rem_col>0):
             self.__ip_img = np.delete(self.__ip_img, rem_col, 1)
             self.__img_width -= rem_col
-        return padd_img
 
-    def inverse_fliter(self,sigma = -1): # method to do inverse filtering
-        padd_kernel = self.padder(self.__kernel)
         H = self.DFT(padd_kernel,1)
         if(sigma != -1):
             for index, x in np.ndenumerate(H):
                 if (np.sqrt(index[0]*index[0]+index[1]*index[1])>sigma):
                     H[index[0],index[0]] = 1
             print("Radial")
-        B,G,R = self.DFT(self.__ip_img/256)
+        B,G,R = self.DFT(self.__ip_img)
         INV_B = B/H
         INV_G = G/H
         INV_R = R/H
 
-        ib = self.IDFT(INV_B)*256
-        ig = self.IDFT(INV_G)*256
-        ir = self.IDFT(INV_R)*256
+        ib = self.IDFT(INV_B)
+        ig = self.IDFT(INV_G)
+        ir = self.IDFT(INV_R)
         self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
         self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
         self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
@@ -226,13 +220,32 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         print("Inverse Filter Applied")
 
     def inv_inbuilt(self):
+        rw_add = np.ceil((self.__img_height-self.__kernel_height)/2)
+        rw_add = rw_add.astype(int)
+        col_add = np.ceil((self.__img_width-self.__kernel_width)/2)
+        col_add = col_add.astype(int)
+        padd_kernel = np.append(np.zeros((rw_add,self.__kernel_width)), self.__kernel, axis=0)#padd with zeros
+        padd_kernel = np.append(padd_kernel,np.zeros((rw_add,self.__kernel_width)), axis=0)#padd with zeros
+        padd_kernel = np.append(np.zeros((padd_kernel.shape[0],col_add)), padd_kernel,axis=1)#padd with zeros
+        padd_kernel = np.append(padd_kernel,np.zeros((padd_kernel.shape[0],col_add)),axis=1)#padd with zeros
+        rem_row = self.__img_height-padd_kernel.shape[0]
+        rem_col = self.__img_width -padd_kernel.shape[1]
+        if(rem_row>0):
+            self.__ip_img = np.delete(self.__ip_img, rem_row, 0)
+            self.__img_height -= rem_row
+
+        if(rem_col>0):
+            self.__ip_img = np.delete(self.__ip_img, rem_col, 1)
+            self.__img_width -= rem_col
+        # self.__kernel = np.ones((5,5),np.float32)/25
+        print(self.__kernel.shape)
         motion_blr = cv.filter2D(self.__ip_img,-1,self.__kernel/np.sum(self.__kernel))
         self.__img_b,self.__img_g,self.__img_r = cv.split(motion_blr)
         cv.imwrite("motion_blr.jpg",motion_blr)
         self.disp("Blurred Image")
         print("Inverse Filtering using inbuilt functions ") # Print status to terminal or IDE
 
-    def radial_filter_threshold(self):
+    def Radial_filter_threshold(self):
         self.lbl_s3.resize(500,50)#label to display title for output image
         self.lbl_s3.setText("Please Enter an Integer value Threshold")#title text
         self.lbl_s3.move(100,590) #positioning
@@ -245,7 +258,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         btn_blur_img.show() #display button
         self.e2.show() #display text box
         btn_blur_img.clicked.connect(lambda: self.inverse_fliter(int(self.e2.text()))) #call blur_img when clicked
-
+        
     def weiner_filtering(self):
         self.lbl_s4.resize(500,50)#label to display title for output image
         self.lbl_s4.setText("Please Enter an Integer value of K")#title text
@@ -261,12 +274,29 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         btn_blur_img.clicked.connect(lambda: self.weiner(int(self.e3.text()))) #call blur_img when clicked
 
     def weiner(self,k):
-        padd_kernel = self.padder(self.__kernel)
+                rw_add = np.ceil((self.__img_height-self.__kernel_height)/2)
+        rw_add = rw_add.astype(int)
+        col_add = np.ceil((self.__img_width-self.__kernel_width)/2)
+        col_add = col_add.astype(int)
+        padd_kernel = np.append(np.zeros((rw_add,self.__kernel_width)), self.__kernel, axis=0)#padd with zeros
+        padd_kernel = np.append(padd_kernel,np.zeros((rw_add,self.__kernel_width)), axis=0)#padd with zeros
+        padd_kernel = np.append(np.zeros((padd_kernel.shape[0],col_add)), padd_kernel,axis=1)#padd with zeros
+        padd_kernel = np.append(padd_kernel,np.zeros((padd_kernel.shape[0],col_add)),axis=1)#padd with zeros
+        rem_row = self.__img_height-padd_kernel.shape[0]
+        rem_col = self.__img_width -padd_kernel.shape[1]
+        if(rem_row>0):
+            self.__ip_img = np.delete(self.__ip_img, rem_row, 0)
+            self.__img_height -= rem_row
+
+        if(rem_col>0):
+            self.__ip_img = np.delete(self.__ip_img, rem_col, 1)
+            self.__img_width -= rem_col
+
         H = self.DFT(padd_kernel,1)
         B,G,R = self.DFT(self.__ip_img)
-        INV_B = np.multiply(B,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k))))
-        INV_G = np.multiply(G,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k))))
-        INV_R = np.multiply(R,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k))))
+        INV_B = np.multipy(B,np.divide(np.power(np.absolute(H),2),(np.multipy(H,np.power(np.absolute(H),2)+k))))
+        INV_G = np.multipy(G,np.divide(np.power(np.absolute(H),2),(np.multipy(H,np.power(np.absolute(H),2)+k))))
+        INV_R = np.multipy(R,np.divide(np.power(np.absolute(H),2),(np.multipyH,np.power(np.absolute(H),2)+k))))
 
         ib = self.IDFT(INV_B)
         ig = self.IDFT(INV_G)
@@ -274,46 +304,18 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
         self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
         self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
-        self.disp("Weiner Filter Applied")
-        print("Weiner Filter Applied")
+        self.disp("Inverse Filter Applied")
+        print("Inverse Filter Applied")    
 
-    def ls_filtering_gamma(self): # to undo all changes done on the image
-        self.lbl_s5.resize(500,50)#label to display title for output image
-        self.lbl_s5.setText("Please Enter an Integer value of gamma")#title text
-        self.lbl_s5.move(100,590) #positioning
-        self.lbl_s5.show() #display title
-        self.e4.setValidator(QIntValidator())#text box setting to allow only integer values
-        self.e4.move(500,600) #positioning
-        btn_blur_img = QPushButton('OK', self) #button to click ok to start operaion on the input
-        btn_blur_img.resize(50,30) #resize the button
-        btn_blur_img.move(610, 600) #positioning
-        btn_blur_img.show() #display button
-        self.e4.show() #display text box
-        btn_blur_img.clicked.connect(lambda: self.ls_filter(int(self.e4.text()))) #call blur_img when clicked
+    def undoall(self): # to undo all changes done on the image
+        self.__mdfd_img = self.__img_v # change the data in the current changed data to original image data
+        # self.__mdfd_img_lstchg = self.__img_v
+        self.disp("All changes undone") # To Display title
+        print("All changes UNDONE ") # Print status to terminal or IDE
 
-        print("LS filtering DONE ") # Print status to terminal or IDE
-    def ls_filter(self,gamma=1):
-        p = np.array([[0,-1,0],[-1,4,-1],[0,-1,0]])
-        padd_p = self.padder(p)
-        P = self.DFT(padd_p,1)
-        h = self.padder(self.__kernel)
-        H = self.DFT(h,1)
-        B,G,R = self.DFT(self.__ip_img)
-        filter = np.divide(np.conj(H),(np.power(np.absolute(H),2)+gamma*np.power(np.absolute(P),2)))
-        R_trans = np.multiply(filter,R)
-        G_trans = np.multiply(filter,G)
-        B_trans = np.multiply(filter,B)
-        ib = self.IDFT(B_trans)
-        ig = self.IDFT(G_trans)
-        ir = self.IDFT(R_trans)
-        self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
-        self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
-        self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
-        self.disp("Weiner Filter Applied")
-        print("Weiner Filter Applied")
-
-    def get_metrics(self): #to undo the last change done on the image
-
+    def undo(self): #to undo the last change done on the image
+        self.__mdfd_img = self.__mdfd_img_lstchg #update the current changed image as last changed image
+        self.disp("Last change undone") # To Display title
         print("Last change UNDONE ")# Print status to terminal or IDE
 
     def save_image(self): # this method is used for saving the image to the file
