@@ -5,6 +5,7 @@ import PyQt4
 import math
 import numpy as np
 import cv2 as cv
+from scipy.signal import convolve2d
 # import PythonQwt as qwt
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui import *
@@ -16,14 +17,9 @@ class Window(QtGui.QMainWindow): #create a class to display a window
     def __init__(self): #method to declare attributes of the class
         super(Window,self).__init__()
         self.setGeometry(50,50,1400,650)    # to set the size of the window to 1400*650
-        self.setWindowTitle("Basic Image Editor") # give title to the window
+        self.setWindowTitle("Image Restoration Tool") # give title to the window
         self.home() #method called home will have all the main features of the GUI
         self.__pixmap = None # create pixmap attribute to display image to GUI
-        self.__mdfd_img_lstchg = None # to store the last the changed image data
-        self.__mdfd_img = None # to store the current image data
-        self.__img_h = None # empty attribute to store hue values of image
-        self.__img_s = None # empty attribute to store saturation values of image
-        self.__img_v = None # empty attribute to store intensity value of image
         self.__img_height = None # height of the Image
         self.__img_width = None # widht of the Image
         self.lbl = QtGui.QLabel(self)  # create a Qlabel object to display input image
@@ -32,12 +28,9 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.lbl_ker = QtGui.QLabel(self)  #create a Qlabel object to display title for kernel
         self.lbl2 = QtGui.QLabel(self) # create a Qlabel object to display title for output image
         self.lbl3 = QtGui.QLabel(self) # create a Qlabel object to displat output image
-        self.lbl_s1 = QtGui.QLabel(self) # create a Qlabel object to display scroll title "High"
-        self.lbl_s2 = QtGui.QLabel(self) # create a Qlabel object to display scroll title "Low"
         self.lbl_s3 = QtGui.QLabel(self) # create a Qlabel object to display text for text editor
         self.lbl_s4 = QtGui.QLabel(self) # create a Qlabel object to display text for text editor
         self.lbl_s5 = QtGui.QLabel(self) # create a Qlabel object to display text for text editor
-        self.s2 = QtGui.QScrollBar(self) # create a QScrollBar object to display scrollbar
         self.e2 = QtGui.QLineEdit(self) # create a QLineEdit object to display scroll title
         self.e3 = QtGui.QLineEdit(self) # create a QLineEdit object to display scroll title
         self.e4 = QtGui.QLineEdit(self) # create a QLineEdit object to display scroll title
@@ -101,8 +94,6 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         # Image.merge("RGB",(imr,img,imb))
         self.__mdfd_img_lstchg = None
         self.__mdfd_img = None
-        self.__mdfd_img_lstchg = self.__img_v # update the last changed value to uploaded image
-        self.__mdfd_img = self.__img_v # update the current changed image to uploaded image
         if upld_img.load(name): # if the image is uploaded properly then upld_img.load will be true
             self.lbl1.clear() # clear the past content in label if any is present
             self.lbl1.setText("Orignal Image") # Set title for the input image to display
@@ -171,9 +162,9 @@ class Window(QtGui.QMainWindow): #create a class to display a window
             g = np.fft.fftshift(g)
             r = rows.dot(r).dot(cols)
             r = np.fft.fftshift(r)
-
             # cv.imwrite("DFT.jpg",img)
             return b,g,r
+
     def IDFT(self,img,ker=0):# this method performs the Inverse Discreet fourier Transform
         rows = self.FFT_matrix(img.shape[0],-1)
         cols = self.FFT_matrix(img.shape[1],-1)
@@ -215,7 +206,6 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         INV_B = B/H
         INV_G = G/H
         INV_R = R/H
-
         ib = self.IDFT(INV_B)*256
         ig = self.IDFT(INV_G)*256
         ir = self.IDFT(INV_R)*256
@@ -226,11 +216,11 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         print("Inverse Filter Applied")
 
     def inv_inbuilt(self):
-        motion_blr = cv.filter2D(self.__ip_img,-1,self.__kernel/np.sum(self.__kernel))
+        motion_blr = cv.filter2D(self.__ip_img,-1,np.divide(self.__kernel,np.sum(self.__kernel).astype(self.__ip_img.dtype)))
         self.__img_b,self.__img_g,self.__img_r = cv.split(motion_blr)
         cv.imwrite("motion_blr.jpg",motion_blr)
         self.disp("Blurred Image")
-        print("Inverse Filtering using inbuilt functions ") # Print status to terminal or IDE
+        print("Blurring using kernel") # Print status to terminal or IDE
 
     def radial_filter_threshold(self):
         self.lbl_s3.resize(500,50)#label to display title for output image
@@ -239,12 +229,16 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.lbl_s3.show() #display title
         self.e2.setValidator(QIntValidator())#text box setting to allow only integer values
         self.e2.move(500,600) #positioning
-        btn_blur_img = QPushButton('OK', self) #button to click ok to start operaion on the input
-        btn_blur_img.resize(50,30) #resize the button
-        btn_blur_img.move(610, 600) #positioning
-        btn_blur_img.show() #display button
+        radial_threshold = QPushButton('OK', self) #button to click ok to start operaion on the input
+        radial_threshold.resize(50,30) #resize the button
+        radial_threshold.move(610, 600) #positioning
+        self.lbl_s5.clear()
+        self.lbl_s4.clear()
+        self.e4.clear()
+        self.e3.clear()
+        radial_threshold.show() #display button
         self.e2.show() #display text box
-        btn_blur_img.clicked.connect(lambda: self.inverse_fliter(int(self.e2.text()))) #call blur_img when clicked
+        radial_threshold.clicked.connect(lambda: self.inverse_fliter(int(self.e2.text()))) #call blur_img when clicked
 
     def weiner_filtering(self):
         self.lbl_s4.resize(500,50)#label to display title for output image
@@ -253,12 +247,16 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.lbl_s4.show() #display title
         self.e3.setValidator(QIntValidator())#text box setting to allow only integer values
         self.e3.move(500,600) #positioning
-        btn_blur_img = QPushButton('OK', self) #button to click ok to start operaion on the input
-        btn_blur_img.resize(50,30) #resize the button
-        btn_blur_img.move(610, 600) #positioning
-        btn_blur_img.show() #display button
+        weiner_k = QPushButton('OK', self) #button to click ok to start operation on the input
+        weiner_k.resize(50,30) #resize the button
+        weiner_k.move(610, 600) #positioning
+        weiner_k.show() #display button
+        self.lbl_s5.clear()
+        self.lbl_s3.clear()
+        self.e4.clear()
+        self.e2.clear()
         self.e3.show() #display text box
-        btn_blur_img.clicked.connect(lambda: self.weiner(int(self.e3.text()))) #call blur_img when clicked
+        weiner_k.clicked.connect(lambda: self.weiner(int(self.e3.text()))) #call blur_img when clicked
 
     def weiner(self,k):
         padd_kernel = self.padder(self.__kernel)
@@ -284,12 +282,16 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.lbl_s5.show() #display title
         self.e4.setValidator(QIntValidator())#text box setting to allow only integer values
         self.e4.move(500,600) #positioning
-        btn_blur_img = QPushButton('OK', self) #button to click ok to start operaion on the input
-        btn_blur_img.resize(50,30) #resize the button
-        btn_blur_img.move(610, 600) #positioning
-        btn_blur_img.show() #display button
+        gamma = QPushButton('OK', self) #button to click ok to start operaion on the input
+        gamma.resize(50,30) #resize the button
+        gamma.move(610, 600) #positioning
+        gamma.show() #display button
+        self.lbl_s3.clear()
+        self.lbl_s4.clear()
+        self.e2.clear()
+        self.e3.clear()
         self.e4.show() #display text box
-        btn_blur_img.clicked.connect(lambda: self.ls_filter(int(self.e4.text()))) #call blur_img when clicked
+        gamma.clicked.connect(lambda: self.ls_filter(int(self.e4.text()))) #call blur_img when clicked
 
         print("LS filtering DONE ") # Print status to terminal or IDE
     def ls_filter(self,gamma=1):
@@ -312,7 +314,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.disp("Weiner Filter Applied")
         print("Weiner Filter Applied")
 
-    def get_metrics(self): #to undo the last change done on the image
+    def metrics(self): #to undo the last change done on the image
 
         print("Last change UNDONE ")# Print status to terminal or IDE
 
@@ -330,16 +332,11 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         print("Window closed") # Print status to terminal or IDE
         sys.exit() #exit the application
 
-    def disp(self,txt,flag = 0,scroll = 0,fft=0,img = np.empty_like([256,256])): # this method is used to display the transformed image to GUI
+    def disp(self,txt,flag = 0,fft=0,img = np.empty_like([256,256])): # this method is used to display the transformed image to GUI
         if (fft == 0): #whether to clear some labels or not is decided by this flag variable
-            self.s2.hide() #to hide the scroll bar
             self.lbl_s3.clear() #to clear the label to show new objects
             self.e2.clear() #to clear the label to show new objects
             self.e2.hide() #to hide the text box
-            self.lbl_s1.clear() #to clear the label to show new objects
-            self.lbl_s2.clear() #to clear the label to show new objects
-            if (scroll == 0):#if the button other than sharpen is pressed
-                self.s2.setValue(1) #reset the value every time
             if (flag == 0 ):
                 img_pix1 = cv.merge((self.__img_b,self.__img_g, self.__img_r)) #merge the v with h and s using cv.merge
                 # cv.imwrite('Blue Channel.jpg',self.__img_b)
