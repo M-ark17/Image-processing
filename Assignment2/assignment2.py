@@ -197,18 +197,22 @@ class Window(QtGui.QMainWindow): #create a class to display a window
     def inverse_fliter(self,sigma = -1): # method to do inverse filtering
         padd_kernel = self.padder(self.__kernel)
         H = self.DFT(padd_kernel,1)
+        F = np.empty_like(H)
         if(sigma != -1):
             for index, x in np.ndenumerate(H):
                 if (np.sqrt(index[0]*index[0]+index[1]*index[1])>sigma):
-                    H[index[0],index[0]] = 1
+                    F[index[0],index[1]] = 0
+                else:
+                    F[index[0],index[1]] = 1
+
             print("Radial")
-        B,G,R = self.DFT(self.__ip_img/256)
-        INV_B = B/H
-        INV_G = G/H
-        INV_R = R/H
-        ib = self.IDFT(INV_B)*256
-        ig = self.IDFT(INV_G)*256
-        ir = self.IDFT(INV_R)*256
+        B,G,R = self.DFT(self.__ip_img)
+        INV_B = (B/H)*F
+        INV_G = (G/H)*F
+        INV_R = (R/H)*F
+        ib = self.IDFT(INV_B)
+        ig = self.IDFT(INV_G)
+        ir = self.IDFT(INV_R)
         self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
         self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
         self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
@@ -259,7 +263,8 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         weiner_k.clicked.connect(lambda: self.weiner(int(self.e3.text()))) #call blur_img when clicked
 
     def weiner(self,k):
-        padd_kernel = self.padder(self.__kernel)
+        padd_kernel = self.padder(self.__kernel.astype(self.__ip_img.dtype))
+        print(np.sum(padd_kernel))
         H = self.DFT(padd_kernel,1)
         B,G,R = self.DFT(self.__ip_img)
         INV_B = np.multiply(B,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k))))
