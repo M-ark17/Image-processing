@@ -6,6 +6,7 @@ import math
 import numpy as np
 import cv2 as cv
 from scipy.signal import convolve2d
+from skimage.measure import compare_ssim
 # import PythonQwt as qwt
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui import *
@@ -31,9 +32,11 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.lbl_s3 = QtGui.QLabel(self) # create a Qlabel object to display text for text editor
         self.lbl_s4 = QtGui.QLabel(self) # create a Qlabel object to display text for text editor
         self.lbl_s5 = QtGui.QLabel(self) # create a Qlabel object to display text for text editor
+        self.lbl_s6 = QtGui.QLabel(self) # create a Qlabel object to display metrics ssim and mse
         self.e2 = QtGui.QLineEdit(self) # create a QLineEdit object to display scroll title
         self.e3 = QtGui.QLineEdit(self) # create a QLineEdit object to display scroll title
         self.e4 = QtGui.QLineEdit(self) # create a QLineEdit object to display scroll title
+
 
 
     def home(self): # home method of the QMainWindow
@@ -69,11 +72,11 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         btn7 = QtGui.QPushButton("LS Filtering",self)
         btn7.clicked.connect(self.ls_filtering_gamma) # go to undo method when clicked on Undo last Change button
         btn7.resize(200,40) # resize the button to the required size
-        btn7.move(500,400 ) # reposition the button at the required position
+        btn7.move(500,350 ) # reposition the button at the required position
         btn8 = QtGui.QPushButton("Calculate Metrics ",self)
         btn8.clicked.connect(self.metrics) # go to undoall method when clicked on Undo All Changes button
         btn8.resize(200,40) # resize the button to the required size
-        btn8.move(500,450 ) # reposition the button at the required position
+        btn8.move(500,400 ) # reposition the button at the required position
         btn9 = QtGui.QPushButton("Save Image",self)
         btn9.clicked.connect(self.save_image) # go to save_image method when clicked on Save Image button
         btn9.resize(200,40) # resize the button to the required size
@@ -87,13 +90,11 @@ class Window(QtGui.QMainWindow): #create a class to display a window
     def file_open(self): #method to open file
         name = QtGui.QFileDialog.getOpenFileName(self,'Open File','','Images (*.png *.xpm *.jpg *.jpeg)') #this will open a dialog box to upload image only png,xpm,jpg,jpeg images are supported
         upld_img = QtGui.QImage() # create Qimage object to store the uploaded image data
-        self.__ip_img =  cv.imread(str(name),cv.IMREAD_COLOR) # upload the image from the dialog box using imread in opencv library
+        self.__ip_img =  (cv.imread(str(name),cv.IMREAD_COLOR)).astype(np.float) # upload the image from the dialog box using imread in opencv library
         # get image properties.
         self.__img_b,self.__img_g,self.__img_r = cv.split(self.__ip_img)
         self.__img_height,self.__img_width = self.__img_r.shape
         # Image.merge("RGB",(imr,img,imb))
-        self.__mdfd_img_lstchg = None
-        self.__mdfd_img = None
         if upld_img.load(name): # if the image is uploaded properly then upld_img.load will be true
             self.lbl1.clear() # clear the past content in label if any is present
             self.lbl1.setText("Orignal Image") # Set title for the input image to display
@@ -115,7 +116,8 @@ class Window(QtGui.QMainWindow): #create a class to display a window
     def file_open_kernel(self): #method to open file
         name = QtGui.QFileDialog.getOpenFileName(self,'Open File','','Images (*.png *.xpm *.jpg *.jpeg)') #this will open a dialog box to upload image only png,xpm,jpg,jpeg images are supported
         upld_img = QtGui.QImage() # create Qimage object to store the uploaded image data
-        self.__kernel =  cv.imread(str(name),cv.IMREAD_GRAYSCALE) # upload the image from the dialog box using imread in opencv library
+        self.__kernel =  (cv.imread(str(name),cv.IMREAD_GRAYSCALE)).astype(np.float) # upload the image from the dialog box using imread in opencv library
+        # self.__kernel = np.true_divide(self.__kernel,np.sum(self.__kernel),dtype=np.float)
         # get image properties.
         self.__kernel_height,self.__kernel_width = self.__kernel.shape
         # Image.merge("RGB",(imr,img,imb))
@@ -144,7 +146,6 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         return W
 
     def DFT(self,img,ker=0):# this method performs the Discreet fourier Transform
-        self.__mdfd_img_lstchg = self.__mdfd_img # store the last changed image data for undo method
         if(ker == 1):
             rows = self.FFT_matrix(img.shape[0])
             cols = self.FFT_matrix(img.shape[1])
@@ -174,51 +175,64 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         # cv.imwrite("IDFT.jpg",np.absolute(img))
         return img
 
-    def padder(self,img):
-        rw_add = np.ceil((self.__img_height-img.shape[0])/2)
-        rw_add = rw_add.astype(int)
-        col_add = np.ceil((self.__img_width-img.shape[1])/2)
-        col_add = col_add.astype(int)
-        padd_img = np.append(np.zeros((rw_add,img.shape[1])), img, axis=0)#padd with zeros
-        padd_img = np.append(padd_img,np.zeros((rw_add,padd_img.shape[1])), axis=0)#padd with zeros
-        padd_img = np.append(np.zeros((padd_img.shape[0],col_add)), padd_img,axis=1)#padd with zeros
-        padd_img = np.append(padd_img,np.zeros((padd_img.shape[0],col_add)),axis=1)#padd with zeros
-        rem_row = self.__img_height-padd_img.shape[0]
-        rem_col = self.__img_width -padd_img.shape[1]
-        if(rem_row>0):
-            self.__ip_img = np.delete(self.__ip_img, rem_row, 0)
-            self.__img_height -= rem_row
+    def padder(self,img,truth=0):
+        if(truth == 1):
+            rem_row = self.__img_height-img.shape[0]
+            rem_col = self.__img_width -img.shape[1]
+            padd_img = np.delete(img, abs(rem_row), 0)
+            padd_img = np.delete(padd_img, abs(rem_col), 1)
+        else:
+            rw_add = np.ceil((self.__img_height-img.shape[0])/2)
+            rw_add = rw_add.astype(int)
+            col_add = np.ceil((self.__img_width-img.shape[1])/2)
+            col_add = col_add.astype(int)
+            # if(rw_add > 0 & col_add> 0 ):
+            padd_img = np.append(np.zeros((rw_add,img.shape[1])), img, axis=0)#padd with zeros
+            padd_img = np.append(padd_img,np.zeros((rw_add,padd_img.shape[1])), axis=0)#padd with zeros
+            padd_img = np.append(np.zeros((padd_img.shape[0],col_add)), padd_img,axis=1)#padd with zeros
+            padd_img = np.append(padd_img,np.zeros((padd_img.shape[0],col_add)),axis=1)#padd with zeros
+            rem_row = self.__img_height-padd_img.shape[0]
+            rem_col = self.__img_width -padd_img.shape[1]
+            if(rem_row>0):
+                self.__ip_img = np.delete(self.__ip_img, rem_row, 0)
+                self.__img_height -= rem_row
 
-        if(rem_col>0):
-            self.__ip_img = np.delete(self.__ip_img, rem_col, 1)
-            self.__img_width -= rem_col
+            if(rem_col>0):
+                self.__ip_img = np.delete(self.__ip_img, rem_col, 1)
+                self.__img_width -= rem_col
         return padd_img
 
     def inverse_fliter(self,sigma = -1): # method to do inverse filtering
         padd_kernel = self.padder(self.__kernel)
         H = self.DFT(padd_kernel,1)
+        string = " "
         if(sigma != -1):
             for index, x in np.ndenumerate(H):
                 if (np.sqrt(index[0]*index[0]+index[1]*index[1])>sigma):
                     H[index[0],index[0]] = 1
-            print("Radial")
-        B,G,R = self.DFT(self.__ip_img/256)
+        B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0))
         INV_B = B/H
         INV_G = G/H
         INV_R = R/H
-        ib = self.IDFT(INV_B)*256
-        ig = self.IDFT(INV_G)*256
-        ir = self.IDFT(INV_R)*256
+        ib = self.IDFT(INV_B)*255.0
+        ig = self.IDFT(INV_G)*255.0
+        ir = self.IDFT(INV_R)*255.0
         self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
         self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
         self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
-        self.disp("Inverse Filter Applied")
-        print("Inverse Filter Applied")
+        cv.imwrite("temp.jpg",cv.merge((self.__img_b,self.__img_g, self.__img_r)))
+        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR))
+        if(sigma != -1):
+            string += "Radial Inverse Filter Applied with cutoff = "+str(sigma)
+        else:
+            string = "Inverse Filter Applied"
+        self.disp(string)
+        print(string)
 
     def inv_inbuilt(self):
         motion_blr = cv.filter2D(self.__ip_img,-1,np.divide(self.__kernel,np.sum(self.__kernel).astype(self.__ip_img.dtype)))
-        self.__img_b,self.__img_g,self.__img_r = cv.split(motion_blr)
-        cv.imwrite("motion_blr.jpg",motion_blr)
+        cv.imwrite("temp.jpg",motion_blr)
+        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR))
         self.disp("Blurred Image")
         print("Blurring using kernel") # Print status to terminal or IDE
 
@@ -261,19 +275,21 @@ class Window(QtGui.QMainWindow): #create a class to display a window
     def weiner(self,k):
         padd_kernel = self.padder(self.__kernel)
         H = self.DFT(padd_kernel,1)
-        B,G,R = self.DFT(self.__ip_img)
+        B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0))
         INV_B = np.multiply(B,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k))))
         INV_G = np.multiply(G,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k))))
         INV_R = np.multiply(R,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k))))
 
-        ib = self.IDFT(INV_B)
-        ig = self.IDFT(INV_G)
-        ir = self.IDFT(INV_R)
+        ib = self.IDFT(INV_B)*255.0
+        ig = self.IDFT(INV_G)*255.0
+        ir = self.IDFT(INV_R)*255.0
         self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
         self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
         self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
-        self.disp("Weiner Filter Applied")
-        print("Weiner Filter Applied")
+        cv.imwrite("temp.jpg",cv.merge((self.__img_b,self.__img_g, self.__img_r)))
+        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR))
+        self.disp("Weiner Filter Applied for k = "+str(k))
+        print("Weiner Filter Applied for k = "+str(k))
 
     def ls_filtering_gamma(self): # to undo all changes done on the image
         self.lbl_s5.resize(500,50)#label to display title for output image
@@ -300,23 +316,40 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         P = self.DFT(padd_p,1)
         h = self.padder(self.__kernel)
         H = self.DFT(h,1)
-        B,G,R = self.DFT(self.__ip_img)
+        B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0))
         filter = np.divide(np.conj(H),(np.power(np.absolute(H),2)+gamma*np.power(np.absolute(P),2)))
         R_trans = np.multiply(filter,R)
         G_trans = np.multiply(filter,G)
         B_trans = np.multiply(filter,B)
-        ib = self.IDFT(B_trans)
-        ig = self.IDFT(G_trans)
-        ir = self.IDFT(R_trans)
+        ib = self.IDFT(B_trans)*255.0
+        ig = self.IDFT(G_trans)*255.0
+        ir = self.IDFT(R_trans)*255.0
         self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
         self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
         self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
-        self.disp("Weiner Filter Applied")
-        print("Weiner Filter Applied")
+        cv.imwrite("temp.jpg",cv.merge((self.__img_b,self.__img_g, self.__img_r)))
+        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR))
+        self.disp("Weiner Filter Applied for gamma = "+str(gamma))
+        print("Weiner Filter Appliedfor gamma = "+str(gamma))
 
     def metrics(self): #to undo the last change done on the image
-
-        print("Last change UNDONE ")# Print status to terminal or IDE
+        name = QtGui.QFileDialog.getOpenFileName(self,'Open File','','Images (*.png *.xpm *.jpg *.jpeg)') #this will open a dialog box to upload image only png,xpm,jpg,jpeg images are supported
+        upld_img = QtGui.QImage() # create Qimage object to store the uploaded image data
+        grd_truth =  (cv.imread(str(name),cv.IMREAD_COLOR)).astype(np.float)
+        restored_img = cv.merge((self.__img_b,self.__img_g, self.__img_r)).astype(np.float)
+        # grd_truth =         (cv.imread(img_name,cv.IMREAD_COLOR))
+        grd_truth_resize = self.padder(grd_truth,1)
+        difference_squared = (grd_truth_resize.astype(np.float) -restored_img) ** 2
+        summ_diff_square = np.sum(difference_squared)
+        pixels_size = np.prod(grd_truth_resize.shape)
+        mse = summ_diff_square / pixels_size
+        ssim = compare_ssim(grd_truth_resize.astype(np.float), restored_img, multichannel=True)
+        self.lbl_s6.clear() # clear the past content in label if any is present
+        self.lbl_s6.resize(200,70)
+        self.lbl_s6.setText("SSIM = "+str(ssim)+"\n"+'MSE = '+str(mse)) # Set title for the input image to display
+        self.lbl_s6.move(500,440) # position the title
+        self.lbl_s6.show()
+        print('mse= '+str(mse),'ssim = '+str(ssim))
 
     def save_image(self): # this method is used for saving the image to the file
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','Images (*.png *.xpm *.jpg *.jpeg)') # tp open a dialog box to input image
@@ -324,7 +357,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         itos = cv.cvtColor(itos, cv.COLOR_BGR2RGB)#convert hsv to rgb image
         img_to_save = QtGui.QPixmap(QtGui.QImage(itos,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888)) # convert opencv image to pixmap to display in gui
         if img_to_save.save(name):#if the image is saved
-            print("Image Saved To file") # Print status to terminal or IDE
+            print("Image Saved at "+str(name)) # Print status to terminal or IDE
         else:#if the could not be saved
             print("Could not save the Image to folder") # Print status to terminal or IDE
 
@@ -339,12 +372,6 @@ class Window(QtGui.QMainWindow): #create a class to display a window
             self.e2.hide() #to hide the text box
             if (flag == 0 ):
                 img_pix1 = cv.merge((self.__img_b,self.__img_g, self.__img_r)) #merge the v with h and s using cv.merge
-                # cv.imwrite('Blue Channel.jpg',self.__img_b)
-                # cv.imwrite('Green Channel.jpg',self.__img_g)
-                # cv.imwrite('Red Channel.jpg',self.__img_r)
-                # cv.imwrite('Merged Output.jpg',img_pix1)
-                # img_color = cv.cvtColor(img_pix1, cv.COLOR_HSV2RGB) #convert the image to color image
-                # img_pix1 = np.dstack((self.__img_b,self.__img_g, self.__img_r))
                 img_pix1 = cv.cvtColor(img_pix1, cv.COLOR_BGR2RGB)
                 pix_img = QtGui.QPixmap(QtGui.QImage(img_pix1,self.__img_width, self.__img_height,3*self.__img_width, QtGui.QImage.Format_RGB888)) # convert opencv image to pixmap to display it to the user
         else:
@@ -352,7 +379,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.lbl2.clear() #to clear the label to show new objects
         self.lbl2.setText(txt) #set the text to display
         self.lbl2.resize(300,50) #resize the label to required size
-        self.lbl2.move(950,0) #positioning the label
+        self.lbl2.move(930,0) #positioning the label
         self.lbl2.show() #show the label
         pix_img = pix_img.scaled(600,600, QtCore.Qt.KeepAspectRatio)
         self.lbl3.clear() #to clear the label to show new objects
