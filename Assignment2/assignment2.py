@@ -206,14 +206,19 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         padd_kernel = self.padder(self.__kernel)
         H = self.DFT(padd_kernel,1)
         string = " "
+        F = np.empty_like(H)
         if(sigma != -1):
             for index, x in np.ndenumerate(H):
                 if (np.sqrt(index[0]*index[0]+index[1]*index[1])>sigma):
-                    H[index[0],index[0]] = 1
+                    F[index[0],index[1]] = 0
+                else:
+                    F[index[0],index[1]] = 1
+
+            print("Radial")
         B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0))
-        INV_B = B/H
-        INV_G = G/H
-        INV_R = R/H
+        INV_B = (B/H)*F
+        INV_G = (G/H)*F
+        INV_R = (R/H)*F
         ib = self.IDFT(INV_B)*255.0
         ig = self.IDFT(INV_G)*255.0
         ir = self.IDFT(INV_R)*255.0
@@ -273,7 +278,8 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         weiner_k.clicked.connect(lambda: self.weiner(int(self.e3.text()))) #call blur_img when clicked
 
     def weiner(self,k):
-        padd_kernel = self.padder(self.__kernel)
+        padd_kernel = self.padder(self.__kernel.astype(self.__ip_img.dtype))
+        print(np.sum(padd_kernel))
         H = self.DFT(padd_kernel,1)
         B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0))
         INV_B = np.multiply(B,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k))))
