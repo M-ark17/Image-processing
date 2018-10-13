@@ -37,15 +37,13 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.e3 = QtGui.QLineEdit(self) # create a QLineEdit object to display scroll title
         self.e4 = QtGui.QLineEdit(self) # create a QLineEdit object to display scroll title
 
-
-
     def home(self): # home method of the QMainWindow
         btn = QtGui.QPushButton("Upload Image",self) # button for uploading image
         btn.clicked.connect(self.file_open) # go to file_open method when clicked on Upload Image button
         btn.resize(200,40) # resize the button to the required size
         btn.move(500,50 ) # reposition the button at the required position
         btn1 = QtGui.QPushButton("Upload Kernel ",self)
-        btn1.clicked.connect(self.file_open_kernel) # go to DFT method when clicked on Fing DFT
+        btn1.clicked.connect(self.file_open_kernel) # go to file_open_kernel method when clicked on Upload Kernel
         btn1.resize(200,40) # resize the button to the required size
         btn1.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         btn1.move(500,100 )
@@ -54,7 +52,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         btn2.resize(200,40) # resize the button to the required size
         btn2.move(500,150 ) # reposition the button at the required position
         btn3 = QtGui.QPushButton("Get blur image",self)
-        btn3.clicked.connect(self.inv_inbuilt) # go to log_transform method when clicked on Log transform button
+        btn3.clicked.connect(self.inv_inbuilt) # go to inv_inbuilt method when clicked on Get blur image button
         btn3.resize(200,40) # resize the button to the required size
         btn3.move(500,200 ) # reposition the button at the required position
         btn4 = QtGui.QPushButton("Radial Filtering",self)
@@ -70,11 +68,11 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         # btn6.resize(200,40) # resize the button to the required size
         # btn6.move(500,350 ) # reposition the button at the required position
         btn7 = QtGui.QPushButton("LS Filtering",self)
-        btn7.clicked.connect(self.ls_filtering_gamma) # go to undo method when clicked on Undo last Change button
+        btn7.clicked.connect(self.ls_filtering_gamma) # go to ls_filtering_gamma method when clicked on LS Filtering button
         btn7.resize(200,40) # resize the button to the required size
         btn7.move(500,350 ) # reposition the button at the required position
         btn8 = QtGui.QPushButton("Calculate Metrics ",self)
-        btn8.clicked.connect(self.metrics) # go to undoall method when clicked on Undo All Changes button
+        btn8.clicked.connect(self.metrics) # go to metrics method when clicked on Calculate Metrics button
         btn8.resize(200,40) # resize the button to the required size
         btn8.move(500,400 ) # reposition the button at the required position
         btn9 = QtGui.QPushButton("Save Image",self)
