@@ -6,3 +6,5 @@ https://stackoverflow.com/questions/20271479/what-does-it-mean-to-get-the-mse-me
 http://scikit-image.org/docs/dev/api/skimage.measure.html for ssim
 https://stackoverflow.com/questions/609972/how-to-use-boolean-and-in-python for and operator
 https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.prod.html for numpy product of all elements
+https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.log10.html#numpy.log10 for log function
+https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio for psnr

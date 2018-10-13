@@ -140,103 +140,105 @@ class Window(QtGui.QMainWindow): #create a class to display a window
             print("Could not upload kernel") # print status to the terminal or IDE
 
     def FFT_matrix(self,N,sign=1): #function to compute FFT matrix
-        i, j = np.meshgrid(np.arange(N), np.arange(N))
-        omega = np.exp( sign * -2 * np.pi * 1J / N )
-        W = np.power( omega, i * j ) / np.sqrt(N)
-        return W
+        i, j = np.meshgrid(np.arange(N), np.arange(N)) #create index matix
+        omega = np.exp( sign * -2 * np.pi * 1J / N ) #compute the twiddle factor
+        W = np.power( omega, i * j ) / np.sqrt(N) #multiply it with the sum of index
+        return W #return the twiddle factor matrix
 
     def DFT(self,img,ker=0):# this method performs the Discreet fourier Transform
-        if(ker == 1):
-            rows = self.FFT_matrix(img.shape[0])
-            cols = self.FFT_matrix(img.shape[1])
-            img = rows.dot(img).dot(cols)
-            img = np.fft.fftshift(img)
+        if(ker == 1): #if given image is kernel
+            rows = self.FFT_matrix(img.shape[0]) #to do fft to rows
+            cols = self.FFT_matrix(img.shape[1]) #to do fft to columns
+            img = rows.dot(img).dot(cols) #first perform fft to rows then for columns
+            img = np.fft.fftshift(img) #since the dft is not centered shift it
             # cv.imwrite("DFT.jpg",np.absolute(img))
-            return img
-        else:
-            b,g,r = cv.split(img)
-            rows = self.FFT_matrix(self.__img_height)
-            cols = self.FFT_matrix(self.__img_width)
-            b = rows.dot(b).dot(cols)
-            b = np.fft.fftshift(b)
-            g = rows.dot(g).dot(cols)
-            g = np.fft.fftshift(g)
-            r = rows.dot(r).dot(cols)
-            r = np.fft.fftshift(r)
+            return img #return the DFT
+        else: #if other images are given they are color images
+            b,g,r = cv.split(img) #split the image to get r,g,b channels
+            rows = self.FFT_matrix(self.__img_height) #get fft matrix for rows
+            cols = self.FFT_matrix(self.__img_width) #get fft matrix for columns
+            b = rows.dot(b).dot(cols) # do fft to blue channel
+            b = np.fft.fftshift(b) #since the dft is not centered shift it
+            g = rows.dot(g).dot(cols) # do fft to green channel
+            g = np.fft.fftshift(g) #since the dft is not centered shift it
+            r = rows.dot(r).dot(cols) # do fft to red channel
+            r = np.fft.fftshift(r) #since the dft is not centered shift it
             # cv.imwrite("DFT.jpg",img)
             return b,g,r
 
     def IDFT(self,img,ker=0):# this method performs the Inverse Discreet fourier Transform
-        rows = self.FFT_matrix(img.shape[0],-1)
-        cols = self.FFT_matrix(img.shape[1],-1)
-        img = rows.dot(img).dot(cols)
-        img = np.fft.ifftshift(img)
-        # print("DFT calculated",np.ceil(np.absolute(img))) # Print status to terminal or IDE
+        rows = self.FFT_matrix(img.shape[0],-1)#get ifft matrix for rows
+        cols = self.FFT_matrix(img.shape[1],-1)#get ifft matrix for columns
+        img = rows.dot(img).dot(cols) #first perform fft to rows then for columns
+        img = np.fft.ifftshift(img) #since the idft is not centered shift it
         # cv.imwrite("IDFT.jpg",np.absolute(img))
         return img
 
-    def padder(self,img,truth=0):
-        if(truth == 1):
-            rem_row = self.__img_height-img.shape[0]
-            rem_col = self.__img_width -img.shape[1]
-            padd_img = np.delete(img, abs(rem_row), 0)
-            padd_img = np.delete(padd_img, abs(rem_col), 1)
-        else:
-            rw_add = np.ceil((self.__img_height-img.shape[0])/2)
-            rw_add = rw_add.astype(int)
-            col_add = np.ceil((self.__img_width-img.shape[1])/2)
-            col_add = col_add.astype(int)
+    def padder(self,img,truth=0): #to padd every image
+        if(truth == 1): #if the given image is ground truth just resize it
+            rem_row = self.__img_height-img.shape[0]   #count the number to delete in image
+            rem_col = self.__img_width -img.shape[1]   #count the number to delete in image
+            padd_img = np.delete(img, abs(rem_row), 0) # delete from image
+            padd_img = np.delete(padd_img, abs(rem_col), 1) # delete from image
+        else: #if the given image is not groung truth
+            rw_add = np.ceil((self.__img_height-img.shape[0])/2) #no of rows to add above and below
+            rw_add = rw_add.astype(int) #convert float to int
+            col_add = np.ceil((self.__img_width-img.shape[1])/2)  #no of columns to add above and below
+            col_add = col_add.astype(int) #convert float to int
             # if(rw_add > 0 & col_add> 0 ):
             padd_img = np.append(np.zeros((rw_add,img.shape[1])), img, axis=0)#padd with zeros
             padd_img = np.append(padd_img,np.zeros((rw_add,padd_img.shape[1])), axis=0)#padd with zeros
             padd_img = np.append(np.zeros((padd_img.shape[0],col_add)), padd_img,axis=1)#padd with zeros
             padd_img = np.append(padd_img,np.zeros((padd_img.shape[0],col_add)),axis=1)#padd with zeros
-            rem_row = self.__img_height-padd_img.shape[0]
-            rem_col = self.__img_width -padd_img.shape[1]
+            rem_row = self.__img_height-padd_img.shape[0] #count how many rows to remove
+            rem_col = self.__img_width -padd_img.shape[1] #count how many rows to remove
             if(rem_row>0):
-                self.__ip_img = np.delete(self.__ip_img, rem_row, 0)
-                self.__img_height -= rem_row
+                self.__ip_img = np.delete(self.__ip_img, rem_row, 0) #delete the rows from the image
+                self.__img_height -= rem_row #set the image size accordingly
 
             if(rem_col>0):
-                self.__ip_img = np.delete(self.__ip_img, rem_col, 1)
-                self.__img_width -= rem_col
-        return padd_img
+                self.__ip_img = np.delete(self.__ip_img, rem_col, 1) #delete the columns from the image
+                self.__img_width -= rem_col #set the image size accordingly
+        return padd_img #return the padded image
 
     def inverse_fliter(self,sigma = -1): # method to do inverse filtering
-        padd_kernel = self.padder(self.__kernel)
-        H = self.DFT(padd_kernel,1)
-        string = " "
-        if(sigma != -1):
-            for index, x in np.ndenumerate(H):
-                if (np.sqrt(index[0]*index[0]+index[1]*index[1])>sigma):
-                    H[index[0],index[0]] = 1
-        B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0))
-        INV_B = B/H
-        INV_G = G/H
-        INV_R = R/H
-        ib = self.IDFT(INV_B)*255.0
-        ig = self.IDFT(INV_G)*255.0
-        ir = self.IDFT(INV_R)*255.0
-        self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
-        self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
-        self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
-        cv.imwrite("temp.jpg",cv.merge((self.__img_b,self.__img_g, self.__img_r)))
-        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR))
-        if(sigma != -1):
+        padd_kernel = self.padder(self.__kernel) # get the padded image
+        H = self.DFT(padd_kernel,1) #  find the DFT of the padded image
+        string = " " # string to show title text
+        F = np.ones_like(H) #get a array with all elements as one
+        if(sigma != -1): # if the method is called only for radial inverse filtering
+            for index, x in np.ndenumerate(F): #get each index for F
+                if (np.sqrt(index[0]*index[0]+index[1]*index[1])>sigma): #if the index is in range keep it as 1
+                    F[index[0],index[0]] = 1
+                else: # since it is not in range make it 0
+                    F[index[0],index[0]] = 0
+        B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0)) #get the DFT the normalised image
+        INV_B = (B/H)*F # do the radial or only inverse filtering depending on sigma
+        INV_G = (G/H)*F # do the radial or only inverse filtering depending on sigma
+        INV_R = (R/H)*F # do the radial or only inverse filtering depending on sigma
+        ib = self.IDFT(INV_B)*255.0 #get back to normal range and perform IDFT
+        ig = self.IDFT(INV_G)*255.0 #get back to normal range and perform IDFT
+        ir = self.IDFT(INV_R)*255.0 #get back to normal range and perform IDFT
+        self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype) #put them in global variables
+        self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype) #put them in global variables
+        self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype) #put them in global variables
+        cv.imwrite("temp.jpg",cv.merge((self.__img_b,self.__img_g, self.__img_r))) #write it to the temp image
+        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR)) # read the temp image to show in GUI
+        if(sigma != -1): # for title and display text
             string += "Radial Inverse Filter Applied with cutoff = "+str(sigma)
         else:
             string = "Inverse Filter Applied"
-        self.disp(string)
-        print(string)
+        self.disp(string) # display image
+        print(string) #print status to terminal
 
-    def inv_inbuilt(self):
-        motion_blr = cv.filter2D(self.__ip_img,-1,np.divide(self.__kernel,np.sum(self.__kernel).astype(self.__ip_img.dtype)))
-        cv.imwrite("temp.jpg",motion_blr)
-        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR))
-        self.disp("Blurred Image")
+    def inv_inbuilt(self): #to get the blurred image from kernel
+        motion_blr = cv.filter2D(self.__ip_img,-1,np.divide(self.__kernel,np.sum(self.__kernel).astype(self.__ip_img.dtype))) #perform convolution
+        cv.imwrite("temp.jpg",motion_blr) # write to temp image
+        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR)) #read from temp to show
+        self.disp("Blurred Image") # display it in GUI
         print("Blurring using kernel") # Print status to terminal or IDE
 
-    def radial_filter_threshold(self):
+    def radial_filter_threshold(self):#to get the cutoff from user
         self.lbl_s3.resize(500,50)#label to display title for output image
         self.lbl_s3.setText("Please Enter an Integer value Threshold")#title text
         self.lbl_s3.move(100,590) #positioning
@@ -252,9 +254,9 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.e3.clear()
         radial_threshold.show() #display button
         self.e2.show() #display text box
-        radial_threshold.clicked.connect(lambda: self.inverse_fliter(int(self.e2.text()))) #call blur_img when clicked
+        radial_threshold.clicked.connect(lambda: self.inverse_fliter(int(self.e2.text()))) #call inverse_fliter when clicked
 
-    def weiner_filtering(self):
+    def weiner_filtering(self): #to get the k image from user
         self.lbl_s4.resize(500,50)#label to display title for output image
         self.lbl_s4.setText("Please Enter an Integer value of K")#title text
         self.lbl_s4.move(100,590) #positioning
@@ -270,28 +272,28 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.e4.clear()
         self.e2.clear()
         self.e3.show() #display text box
-        weiner_k.clicked.connect(lambda: self.weiner(int(self.e3.text()))) #call blur_img when clicked
+        weiner_k.clicked.connect(lambda: self.weiner(int(self.e3.text()))) #call weiner when clicked
 
-    def weiner(self,k):
-        padd_kernel = self.padder(self.__kernel)
-        H = self.DFT(padd_kernel,1)
-        B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0))
-        INV_B = np.multiply(B,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k))))
-        INV_G = np.multiply(G,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k))))
-        INV_R = np.multiply(R,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k))))
+    def weiner(self,k): #to perform weiner filtering
+        padd_kernel = self.padder(self.__kernel) # get the padded image
+        H = self.DFT(padd_kernel,1)#  find the DFT of the padded image
+        B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0))#  find the DFT of the  image
+        INV_B = np.multiply(B,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k)))) #perform weiner filter and get the channel
+        INV_G = np.multiply(G,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k)))) #perform weiner filter and get the channel
+        INV_R = np.multiply(R,np.divide(np.power(np.absolute(H),2),(np.multiply(H,np.power(np.absolute(H),2)+k)))) #perform weiner filter and get the channel
 
-        ib = self.IDFT(INV_B)*255.0
-        ig = self.IDFT(INV_G)*255.0
-        ir = self.IDFT(INV_R)*255.0
-        self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
-        self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
-        self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
-        cv.imwrite("temp.jpg",cv.merge((self.__img_b,self.__img_g, self.__img_r)))
-        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR))
-        self.disp("Weiner Filter Applied for k = "+str(k))
-        print("Weiner Filter Applied for k = "+str(k))
+        ib = self.IDFT(INV_B)*255.0 #perform IDFT
+        ig = self.IDFT(INV_G)*255.0 #perform IDFT
+        ir = self.IDFT(INV_R)*255.0 #perform IDFT
+        self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)#put them in global variables
+        self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)#put them in global variables
+        self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)#put them in global variables
+        cv.imwrite("temp.jpg",cv.merge((self.__img_b,self.__img_g, self.__img_r))) #write it to temp image
+        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR))# read the temp image to show in GUI
+        self.disp("Weiner Filter Applied for k = "+str(k)) #display it to GUI
+        print("Weiner Filter Applied for k = "+str(k)) #print status to terminal
 
-    def ls_filtering_gamma(self): # to undo all changes done on the image
+    def ls_filtering_gamma(self): # to get gamma values
         self.lbl_s5.resize(500,50)#label to display title for output image
         self.lbl_s5.setText("Please Enter an Integer value of gamma")#title text
         self.lbl_s5.move(100,590) #positioning
@@ -309,47 +311,47 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.e4.show() #display text box
         gamma.clicked.connect(lambda: self.ls_filter(int(self.e4.text()))) #call blur_img when clicked
 
-        print("LS filtering DONE ") # Print status to terminal or IDE
-    def ls_filter(self,gamma=1):
-        p = np.array([[0,-1,0],[-1,4,-1],[0,-1,0]])
-        padd_p = self.padder(p)
-        P = self.DFT(padd_p,1)
-        h = self.padder(self.__kernel)
-        H = self.DFT(h,1)
-        B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0))
-        filter = np.divide(np.conj(H),(np.power(np.absolute(H),2)+gamma*np.power(np.absolute(P),2)))
-        R_trans = np.multiply(filter,R)
-        G_trans = np.multiply(filter,G)
-        B_trans = np.multiply(filter,B)
-        ib = self.IDFT(B_trans)*255.0
-        ig = self.IDFT(G_trans)*255.0
-        ir = self.IDFT(R_trans)*255.0
-        self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)
-        self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)
-        self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)
-        cv.imwrite("temp.jpg",cv.merge((self.__img_b,self.__img_g, self.__img_r)))
-        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR))
-        self.disp("Weiner Filter Applied for gamma = "+str(gamma))
-        print("Weiner Filter Appliedfor gamma = "+str(gamma))
+        print("gamma value given is = "+ str(self.e4.text())) # Print status to terminal or IDE
+    def ls_filter(self,gamma=1): # to perform LS filtering
+        p = np.array([[0,-1,0],[-1,4,-1],[0,-1,0]]) # blur kernel
+        padd_p = self.padder(p) # get the padded image
+        P = self.DFT(padd_p,1) #  find the DFT of the padded image
+        h = self.padder(self.__kernel)# get the padded image
+        H = self.DFT(h,1)  #  find the DFT of the kernel image
+        B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0)) #get the DFT the normalised image
+        filter = np.divide(np.conj(H),(np.power(np.absolute(H),2)+gamma*np.power(np.absolute(P),2))) #get LS filter
+        R_trans = np.multiply(filter,R)# do the LS filtering depending on gamma
+        G_trans = np.multiply(filter,G)# do the LS filtering depending on gamma
+        B_trans = np.multiply(filter,B)# do the LS filtering depending on gamma
+        ib = self.IDFT(B_trans)*255.0#get back to normal range and perform IDFT
+        ig = self.IDFT(G_trans)*255.0#get back to normal range and perform IDFT
+        ir = self.IDFT(R_trans)*255.0#get back to normal range and perform IDFT
+        self.__img_b = (np.absolute(ib)).astype(self.__ip_img.dtype)#put them in global variables
+        self.__img_g = (np.absolute(ig)).astype(self.__ip_img.dtype)#put them in global variables
+        self.__img_r = (np.absolute(ir)).astype(self.__ip_img.dtype)#put them in global variables
+        cv.imwrite("temp.jpg",cv.merge((self.__img_b,self.__img_g, self.__img_r))) #write it to the temp image
+        self.__img_b,self.__img_g,self.__img_r = cv.split(cv.imread("temp.jpg",cv.IMREAD_COLOR)) # read the temp image to show in GUI
+        self.disp("LS Filter Applied for gamma = "+str(gamma))# display image
+        print("LS Filter Appliedfor gamma = "+str(gamma))#print status to terminal
 
     def metrics(self): #to undo the last change done on the image
         name = QtGui.QFileDialog.getOpenFileName(self,'Open File','','Images (*.png *.xpm *.jpg *.jpeg)') #this will open a dialog box to upload image only png,xpm,jpg,jpeg images are supported
         upld_img = QtGui.QImage() # create Qimage object to store the uploaded image data
-        grd_truth =  (cv.imread(str(name),cv.IMREAD_COLOR)).astype(np.float)
-        restored_img = cv.merge((self.__img_b,self.__img_g, self.__img_r)).astype(np.float)
-        # grd_truth =         (cv.imread(img_name,cv.IMREAD_COLOR))
-        grd_truth_resize = self.padder(grd_truth,1)
-        difference_squared = (grd_truth_resize.astype(np.float) -restored_img) ** 2
-        summ_diff_square = np.sum(difference_squared)
-        pixels_size = np.prod(grd_truth_resize.shape)
-        mse = summ_diff_square / pixels_size
-        ssim = compare_ssim(grd_truth_resize.astype(np.float), restored_img, multichannel=True)
+        grd_truth =  (cv.imread(str(name),cv.IMREAD_COLOR)).astype(np.float) #get the image name from user and read it
+        restored_img = cv.merge((self.__img_b,self.__img_g, self.__img_r)).astype(np.float) #merge to get restored image
+        grd_truth_resize = self.padder(grd_truth,1) #resize the ground truth to our size
+        difference_squared = (grd_truth_resize.astype(np.float) -restored_img) ** 2 #get the square of the difference
+        summ_diff_square = np.sum(difference_squared) #sum the difference
+        pixels_size = np.prod(grd_truth_resize.shape) #get the pixel size of the image
+        mse = summ_diff_square / pixels_size #find out the mean square error
+        psnr = 20.0*np.log10(255/np.sqrt(mse)) #calculate PSNR
+        ssim = compare_ssim(grd_truth_resize.astype(np.float), restored_img, multichannel=True) #get the SSIM
         self.lbl_s6.clear() # clear the past content in label if any is present
         self.lbl_s6.resize(200,70)
-        self.lbl_s6.setText("SSIM = "+str(ssim)+"\n"+'MSE = '+str(mse)) # Set title for the input image to display
-        self.lbl_s6.move(500,440) # position the title
+        self.lbl_s6.setText("PSNR ="+str(psnr)+"dB\n"+'SSIM = '+str(ssim)) # Set PSNR and SSIM
+        self.lbl_s6.move(500,440) # position the text
         self.lbl_s6.show()
-        print('mse= '+str(mse),'ssim = '+str(ssim))
+        print('ssim= '+str(ssim),'psnr = '+str(psnr)+"dB") #print status to terminal
 
     def save_image(self): # this method is used for saving the image to the file
         name = QtGui.QFileDialog.getSaveFileName(self, 'Save File','','Images (*.png *.xpm *.jpg *.jpeg)') # tp open a dialog box to input image
