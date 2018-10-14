@@ -1,10 +1,104 @@
 metrics for different images and same kernel
 ssim= 0.008234314887168165', 'psnr = 17.920233880580266dB image 1_1 and kernel 1 inverse Filtering
+
 ssim= 0.008234314887168165', 'psnr = 17.920233880580266dB  image 1_1 and kernel 1 radial inverse Filtering cutoff 150
+
 'ssim= 0.12899297868054202', 'psnr = 23.148784387462406dB') weiner filter with k = 0.1
+
 ssim= 0.014628983425784947', 'psnr = 13.556953153524585dB') weiner filter with k = 5
+
 ssim= 0.006734134067439941', 'psnr = 13.038407792002904dB') weiner filter with k = 8
-ssim= 0.008234314887168165', 'psnr = 17.920233880580266dB gamma = 0 LS
+
+ssim= 0.0023642272982815336', 'psnr = 12.611057048090903dB weiner filter with k = 15
+
+ssim= 0.008234314887168165', 'psnr = 17.920233880580266dB gamma = 0  LS
+
 ssim= 0.19684344630868653', 'psnr = 24.42661193863731dB') gamma = 5 LS
+
 'ssim= 0.18830657461332967', 'psnr = 24.43738047045613dB') gamma = 15 LS
+
 ssim= 0.17594902052330422', 'psnr = 24.38289276706215dB gamma = 30 LS
+
+Image 2 kernel 2
+'ssim= 0.01806763382100661', 'psnr = 15.743600177961191dB') inverse filtering
+
+'ssim= 0.01806763382100661', 'psnr = 15.743600177961191dB' radial filtering
+
+('ssim= 0.11471044241070671', 'psnr = 17.870996924435516dB') weiner filter with k = 0.1
+
+('ssim= 0.026220985543765552', 'psnr = 9.92043654165898dB')
+ weiner filter with k = 5
+
+ ('ssim= 0.013683632943321195', 'psnr = 9.403203138009308dB')
+ weiner filter with k = 8
+
+ 'ssim= 0.0054784068913342225', 'psnr = 8.970344208679567dB')
+ weiner filter with k = 15
+
+('ssim= 0.01806763382100661', 'psnr = 15.743600177961191dB') gamma = 0  LS
+
+('ssim= 0.17800703206835747', 'psnr = 18.499401965077773dB')gamma = 5 LS
+
+('ssim= 0.1969149651622446', 'psnr = 18.862352697811325dB')
+gamma = 15 LS
+
+('ssim= 0.2013364186005355', 'psnr = 19.048974999571342dB') gamma = 30 LS
+
+Image 3 kernel 3
+
+('ssim= 0.007630150027224443', 'psnr = 21.20097119935902dB')
+ inverse filtering
+
+ ('ssim= 0.007630150027224443', 'psnr = 21.20097119935902dB') radial filtering 150
+
+ ('ssim= 0.031498087762106323', 'psnr = 21.338794848945035dB') weiner filter with k = 0.1
+
+('ssim= 0.011393571537853303', 'psnr = 10.872693095819962dB')
+ weiner filter with k = 5
+
+('ssim= 0.009885694513261946', 'psnr = 10.335695115933085dB')
+ weiner filter with k = 8
+
+ 'ssim= 0.002362223152195035', 'psnr = 9.894650159302431dB')
+ weiner filter with k = 15
+
+'ssim= 0.007630150027224443', 'psnr = 21.20097119935902dB')
+ gamma = 0  LS
+
+('ssim= 0.03928754782333967', 'psnr = 22.456208024404198dB')gamma = 5 LS
+
+('ssim= 0.06380004263981759', 'psnr = 22.769949599027072dB')
+gamma = 15 LS
+
+('ssim= 0.08294978860243511', 'psnr = 22.995828804296377dB') gamma = 30 LS
+
+Image 4 kernel 4
+
+('ssim= 0.012311038805806343', 'psnr = 11.624179804769792dB')
+ inverse filtering
+
+('ssim= 0.012311038805806343', 'psnr = 11.624179804769792dB') radial filtering 150
+
+'ssim= 0.03811339259355565', 'psnr = 17.393370370384392dB')
+ weiner filter with k = 0.1
+
+ ('ssim= 0.018064667816945604', 'psnr = 10.30338149892981dB')
+ weiner filter with k = 5
+
+('ssim= 0.014313951901248873', 'psnr = 9.805246795009085dB')
+ weiner filter with k = 8
+
+ ('ssim= 0.008265350751804708', 'psnr = 9.379381457812695dB')
+ weiner filter with k = 15
+
+('ssim= 0.012311038805806343', 'psnr = 11.624179804769792dB')
+ gamma = 0  LS
+
+ ('ssim= 0.05629157888061678', 'psnr = 17.620551846304174dB')
+gamma = 5 LS
+
+('ssim= 0.06413095520355722', 'psnr = 17.834248734468147dB')
+gamma = 15 LS
+
+('ssim= 0.07069987527622389', 'psnr = 18.003170165298194dB')
+gamma = 30 LS
