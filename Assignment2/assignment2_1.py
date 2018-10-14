@@ -298,10 +298,10 @@ class Window(QtGui.QMainWindow): #create a class to display a window
 
     def ls_filtering_gamma(self): # to get gamma values
         self.lbl_s5.resize(500,50)#label to display title for output image
-        self.lbl_s5.setText("Please Enter an Integer value of gamma")#title text
+        self.lbl_s5.setText("Please Enter a value for gamma")#title text
         self.lbl_s5.move(100,590) #positioning
         self.lbl_s5.show() #display title
-        self.e4.setValidator(QIntValidator())#text box setting to allow only integer values
+        self.e4.setValidator(QDoubleValidator())#text box setting to allow only integer values
         self.e4.move(500,600) #positioning
         gamma = QPushButton('OK', self) #button to click ok to start operaion on the input
         gamma.resize(50,30) #resize the button
@@ -312,7 +312,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         self.e2.clear()
         self.e3.clear()
         self.e4.show() #display text box
-        gamma.clicked.connect(lambda: self.ls_filter(int(self.e4.text()))) #call blur_img when clicked
+        gamma.clicked.connect(lambda: self.ls_filter(np.float(self.e4.text()))) #call blur_img when clicked
 
         print("gamma value given is = "+ str(self.e4.text())) # Print status to terminal or IDE
     def ls_filter(self,gamma=1): # to perform LS filtering
@@ -322,7 +322,7 @@ class Window(QtGui.QMainWindow): #create a class to display a window
         h = self.padder(self.__kernel)# get the padded image
         H = self.DFT(h,1)  #  find the DFT of the kernel image
         B,G,R = self.DFT(np.true_divide(self.__ip_img,255.0)) #get the DFT the normalised image
-        filter = np.divide(np.conj(H),(np.power(np.absolute(H),2)+gamma*np.power(np.absolute(P),2))) #get LS filter
+        filter = np.divide(np.conj(H),(np.power(np.absolute(H),2)+np.float(gamma)*np.power(np.absolute(P),2))) #get LS filter
         R_trans = np.multiply(filter,R)# do the LS filtering depending on gamma
         G_trans = np.multiply(filter,G)# do the LS filtering depending on gamma
         B_trans = np.multiply(filter,B)# do the LS filtering depending on gamma

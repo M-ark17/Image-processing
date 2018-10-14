@@ -1,0 +1,10 @@
+metrics for different images and same kernel
+ssim= 0.008234314887168165', 'psnr = 17.920233880580266dB image 1_1 and kernel 1 inverse Filtering
+ssim= 0.008234314887168165', 'psnr = 17.920233880580266dB  image 1_1 and kernel 1 radial inverse Filtering cutoff 150
+'ssim= 0.12899297868054202', 'psnr = 23.148784387462406dB') weiner filter with k = 0.1
+ssim= 0.014628983425784947', 'psnr = 13.556953153524585dB') weiner filter with k = 5
+ssim= 0.006734134067439941', 'psnr = 13.038407792002904dB') weiner filter with k = 8
+ssim= 0.008234314887168165', 'psnr = 17.920233880580266dB gamma = 0 LS
+ssim= 0.19684344630868653', 'psnr = 24.42661193863731dB') gamma = 5 LS
+'ssim= 0.18830657461332967', 'psnr = 24.43738047045613dB') gamma = 15 LS
+ssim= 0.17594902052330422', 'psnr = 24.38289276706215dB gamma = 30 LS

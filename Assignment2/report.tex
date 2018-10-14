@@ -4,11 +4,10 @@
 % --------------------------------------------------------------------------
 \documentclass{article}
 \usepackage{spconf,amsmath,graphicx}
-%\usepackage[subsection]{placeins}
-\usepackage[section]{placeins}
+\usepackage[subsection]{placeins}
 \usepackage{listings}
 \lstset{
-  basicstyle=\sffamily,
+  basicstyle=\ttfamily,
   columns=fullflexible,
   frame=single,
   breaklines=true,
@@ -19,11 +18,10 @@
 % --------------------
 \def\x{{\mathbf x}}
 \def\L{{\cal L}}
-\def\listingsfontinline{\ttfamily}
 
 % Title.
 % ------
-\title{Image Processing Assignment-1}
+\title{Image Processing Assignment-2}
 %
 % Single address.
 % ---------------
@@ -55,36 +53,39 @@
 \maketitle
 %
 \begin{abstract}
-I have developed tool to perform the basic intensity transformation on the Images. Images here can be grey scale or color but only images of the type png,jpeg,jpg,xmp are accepted as input. Intensity transforms that can be performed on this images using the tool are Histogram Equalization, Gamma transform, Log transform, Blurring Image, Sharpening Image and Edge detection using Sobel operators is added as the additional transform. All of these transforms are applied on some of the images and the results are shown in this report.
+I have developed tool to perform the Image restoration on the degraded Images. Images here images are color but only images of the type png,jpeg,jpg,xmp are accepted as input where as kernel is assumed to be greyscale. Several restoration techniques that can be performed on  images using the tool are Inverse Filtering, Radial Inverse Filtering, Weiner Filtering, LS Filtering All of these Filters are applied on some of the images and the results are shown in this report.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:intro}
-Main idea behind this tool is to implement various transformation techniques on any of the image.Images can be of many types like color, grey scale etc. Different Images have different underlying data representations like color images can be represented with 3 arrays if the pixel intensities are represented in RGB format, Same image if represented in HSV format will have arrays corresponding to H,S,V respectively each array element will be the value of Hue,Saturation and Value. Similarly grey scale  is one in which the value of each pixel represents intensity information. This tool will convert any image given to it into its HSV data and performs all the operations on the Intensity(V) array and then merge it with the original Hue(H) and Saturation(S) arrays to get back the original image. 
+Main idea behind this tool is to implement Image restoration techniques on the degraded Images.  .Images can be of many types like color, grey scale etc. Different Images have different underlying data representations like color images can be represented with 3 arrays if the pixel intensities are represented in RGB format, Same image if represented in HSV format will have arrays corresponding to H,S,V respectively each array element will be the value of Hue,Saturation and Value. Similarly grey scale  is one in which the value of each pixel represents intensity information. This tool will convert any degraded image given to it into its RGB data and performs all the operations on the on R,G,B arrays seperately and then merge it  to get back the restored image.
 
 
 \section{Background read}
 \label{sec:format}
-This tool is implemented using Python\cite{WEBSITE:10}. I have used PyQt4\cite{WEBSITE:9} binding for implementing GUI it runs on Windows, Linux, Mac OS X and various UNIX platforms. It does not support Android and iOS. To handle color and grey scale images opencv\cite{WEBSITE:4} library is used. Any image uploaded will be considered as color image and its HSV arrays\cite{WEBSITE:2} are extracted. To perform operations on the Intensity values numpy\cite{WEBSITE:1} library is used  
+This tool is implemented using Python\cite{WEBSITE:10}. I have used PyQt4\cite{WEBSITE:9} binding for implementing GUI it runs on Windows, Linux, Mac OS X and various UNIX platforms. It does not support Android and iOS. To handle color and grey scale images opencv\cite{WEBSITE:4} library is used. Any image uploaded will be considered as color image and its RGB arrays\cite{WEBSITE:2} are extracted. To perform operations on the R,G,B separately  numpy\cite{WEBSITE:1} library is used. Also to compute SSIM skimage is used.
 
 
 \section{Approach}
 \label{sec:pagestyle}
-Apart from transformations there are some file handling and operation control features in this tool. Every operation is associated with a button or scroll bar(only for sharpening image). Each button in turn when clicked calls the corresponding method to perform the operation on the image. Before any change is made to the data it is stored in a global variable so that the Undo functionality can be implemented easily. Each of the transform that is implemented by this tool and approach followed to implement it is listed below
-\subsection{Histogram Equalization}
-Histogram equalization\cite{WEBSITE:4} is implemented by taking the CDF of the pixel intensities, for each intensity level number of such pixels in the image are found and this result is stored in a variable(CDF) and it is updated for every intensity level by adding the previous value also the new intensity is calculated by dividing it with the size of the image and then multiplying it with maximum intensity i.e.,255.
-\subsection{Gamma transform}
-Each intensity value of the original image is normalized and raised to the power of $1/gamma$ given by the user this result is multiplied with a constant value to return the intensity range of the original image. In this tool constant for gamma transform\cite{WEBSITE:12} is chosen to be 255.So if the user gives gamma to be less than 1 all the intensity values are reduced and the image appears darker. Similarly if gamma is greater than 1 image appears brighter.
-\subsection{Log transform}
-Each intensity value of the original image is multiplied by a constant and log of that value is taken as new intensity. In this tool constant for log transform is chosen to be 46 because the intensity range from images is from 0 to 255. log of these values would result in values from 0 to 5.54 to keep the range of intensities same constant is chosen to be 46.
-\subsection{Blurring Image}
-To blur an image blurring kernel is used. Gaussian kernel is used and the window size of the kernel is determined by the sigma(variance) value given by the user larger the sigma value more blurring happens and vice-verse. After sigma is taken from the user kernel of size $(2*sigma,2*sigma)$ is formed and the image is convolved with the filter(kernel) to get the blurred image. 
+Apart from transformations there are some file handling and operation control features in this tool. Every operation is associated with a button . Each button in turn when clicked calls the corresponding method to perform the operation on the image.  Each of the transform that is implemented by this tool and approach followed to implement it is listed below
+\subsection{Blur Image}
+Blur Image method is used to get the spatially invariant blurred Image. When the ground truth is known and the kernel is known then degraded image is obtained just by performing convolution of the given image with the kernel.
+\subsection{Inverse Filtering}
+Inverse Filtering can be done easily in Frequency domain. After getting the degraded image from the  Blur Image method perform FFT on it to get the Frequency transform. Similarly do the FFt separately for R,G,B channels of the degraded image. Since we are operating on pixels values directly before preforming any operation just normalize the kernel such that the average intensity of the image does not change.
 
-\subsection{Sharpening Image}
-To Sharpen an image kernel is used. Laplacian kernel is used and the window size of the kernel $(3,3)$ is formed and the image is convolved with the image to get the sharpened image. Extent of sharpening is controlled with the scroll bar minimum value of the scroll bar is 1 and maximum is 10. If scroll bar is set to 1 the resultant image is the sum of original image and convolved image. Similarly if the scroll bar is set to 10 the resultant image is sum of the original image and 10 times the convolved image.
+\subsection{Radial Inverse Filtering}
+Radial inverse filtering is same as the inverse filtering but because of the noise present in the image will be amplified because the kernel values at the noise will low so noise will be increased. To avoid magnifying noise truncated kernel is used. A cutoff from user is taken and a the result we obtaine after getting the inverse filtering is passed through the ideal low pass filter generated by making pixel values as 0 when the range exceeds else it is 1.
 
-\subsection{Sobel operators(Horizontal and vertical edge detection)}
-To detect edges kernel is used. Here Sobel kernel is used and the window size of the kernel $(3,3)$ is formed and the image is convolved with the image to get the sharpened image. Two kernels are used to detect 2 edges (horizontal and vertical) and the result of both of them is added to display the horizontal and vertical edges.
+\subsection{Weiner Filtering}
+To perform Weiner Filtering gamma value is required. This value is taken from the user and then the Fourier Transform of the image is obtained by taking the FFT of B,G,R channels seperately. Similarly Fourier Transform of the kernel is obtained after proper padding. Weiner Filtering is modification of Radial Inverse filtering i.e., truncation of the kernel happens as the noise factor in the degraded image increases but this tool is used to implement approximate weiner filter in this case the values is taken from the user and applyed in the approxmation.
+
+
+\subsection{LS Filtering}
+Constrained Least Square Filtering is implemented by taking the gamma from the user. Decision for optimum gamma is left for the user. So for every image optimum gamma changes and is depends on many factors such as degradation kernel, degraded image, ground truth etc., Here after finding the fourier transform of the kernel(after sufficiently padding) and fourier transform of the image with R,G,B values seperately. Here the filter is obtained by dividing the conjugate of the fourier of the padded kernel dividing with sum of the square of the absolute of the fourier of the padded kernel added with gamma multipled with square of the absolute of the fourier of the padded kernel.
+
+\subsection{Calculate performance Metrics}
+Two metrics are used to calculate the performance of the restoration techniques used here. PSNR is calculated after computing the Mean Square error of the restored image with ground truth. After calculating MSE, PSNR is obtained by taking log of the MSE divided by square root of the MSE. PSNR is in dB and high PSNR is good image quantitavly but it may not be good image because judgement is based on the user perspective, SSIM metric offer such analysis to some extent and here skimage library is used to compute SSIM from the restored image and ground truth. SSIM ranges from 0 to 1. values closer to one are desired outputs.
 
 \section{Selection of test images}
 \label{sec:typestyle}
@@ -95,20 +96,20 @@ Following are the images used for testing the various transformation techniques.
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm]{church.png}}
 %  \vspace{2.0cm}
   \centerline{Test image for Histogram equalization\cite{WEBSITE:13}}\medskip
 \end{minipage}
 %
 \end{figure}
-This is image is chosen for histogram equalization because its Histogram is more skewed towards low intensity levels. Results of histogram equalisation will be clearly visible with this image. 
+This is image is chosen for histogram equalization because its Histogram is more skewed towards low intensity levels. Results of histogram equalisation will be clearly visible with this image.
 
 \subsection{Gamma Correct}
 \begin{figure}[htb]
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm]{lena_gamhi.jpg}}
 %  \vspace{2.0cm}
   \centerline{Test image for Gamma correction\cite{WEBSITE:12}}\medskip
 \end{minipage}
@@ -121,26 +122,26 @@ This is image is chosen for Gamma correction because it is brighter image and th
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm,height=7cm,keepaspectratio]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm,height=7cm,keepaspectratio]{log_tst.jpg}}
 %  \vspace{2.0cm}
   \centerline{Test image for Log Transform\cite{WEBSITE:16}}\medskip
 \end{minipage}
 %
 \end{figure}
-Effect of Log transformation is more clearly visible in Grey scale image, So grey scale image is chosen for testing Log transformation. 
+Effect of Log transformation is more clearly visible in Grey scale image, So grey scale image is chosen for testing Log transformation.
 
 \subsection{Blur Image}
 \begin{figure}[htb]
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm,height=5cm,keepaspectratio]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm,height=5cm,keepaspectratio]{edges.png}}
 %  \vspace{2.0cm}
   \centerline{Test image for Blurring\cite{WEBSITE:14}}\medskip
 \end{minipage}
 %
 \end{figure}
-Any image can chosen for blurring image but image which has more details in it will give the best output so this image is chosen. 
+Any image can chosen for blurring image but image which has more details in it will give the best output so this image is chosen.
 
 
 \subsection{Sharpen Image}
@@ -148,21 +149,21 @@ Any image can chosen for blurring image but image which has more details in it w
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm,height=4cm,keepaspectratio]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm,height=4cm,keepaspectratio]{done.jpg}}
 %  \vspace{2.0cm}
   \centerline{Test image for Sharpening\cite{WEBSITE:17}}\medskip
 \end{minipage}
 %
 \end{figure}
 
- 
+
 \subsection{Sobel operation}
 
 \begin{figure}[htb]
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm,height=5cm,keepaspectratio]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm,height=5cm,keepaspectratio]{edge2.jpg}}
 %  \vspace{2.0cm}
   \centerline{Test image for Sobel opeartion\cite{WEBSITE:15}}\medskip
 \end{minipage}
@@ -179,7 +180,7 @@ Following are the images after appying various transformation techniques.
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm]{church_op.png}}
 %  \vspace{2.0cm}
   \centerline{Test image after applying Histogram equalization}\medskip
 \end{minipage}
@@ -193,18 +194,18 @@ Following are the images after appying various transformation techniques.
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm,height=6cm,keepaspectratio]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm,height=6cm,keepaspectratio]{gamma0_1.jpg}}
 %  \vspace{2.0cm}
   \centerline{Test image after applying Gamma correction with gamma = 0.1}\medskip
 \end{minipage}
 %
 \end{figure}
-\subsubsection[h]{gamma = 2.2}Image after applying gamma transform 
+\subsubsection[h]{gamma = 2.2}Image after applying gamma transform
 \begin{figure}[h]
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm]{gamma2_2.jpg}}
 %  \vspace{2.0cm}
   \centerline{Test image after applying Gamma correction with gamma = 2.2}\medskip
 \end{minipage}
@@ -217,7 +218,7 @@ Following are the images after appying various transformation techniques.
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm]{log_tst_op.jpg}}
 %  \vspace{2.0cm}
   \centerline{Test image after applying Log Transform}\medskip
 \end{minipage}
@@ -225,13 +226,13 @@ Following are the images after appying various transformation techniques.
 \end{figure}
 
 
-\subsection[h]{Blur Image}Results of blurring with different Gaussian kernels 
+\subsection[h]{Blur Image}Results of blurring with different Gaussian kernels
 \subsubsection[h]{Blur using Gaussian kernel with variance 5 }
 \begin{figure}[htb]
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm,height = 5cm ,keepaspectratio]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm,height = 5cm ,keepaspectratio]{blur_5.png}}
 %  \vspace{2.0cm}
   \centerline{Test image after Blurring with Gaussian kernel with variance 5}\medskip
 \end{minipage}
@@ -242,7 +243,7 @@ Following are the images after appying various transformation techniques.
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm,height = 5cm ,keepaspectratio]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm,height = 5cm ,keepaspectratio]{blur_20.png}}
 %  \vspace{2.0cm}
   \centerline{Test image after Blurring with Gaussian kernel with variance 20}\medskip
 \end{minipage}
@@ -255,21 +256,21 @@ Following are the images after appying various transformation techniques.
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm,height =4cm ,keepaspectratio]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm,height =4cm ,keepaspectratio]{done_op.jpg}}
 %  \vspace{2.0cm}
   \centerline{Test image after applying sharpening filter}\medskip
 \end{minipage}
 %
 \end{figure}
 
- 
+
 \subsection[h]{Sobel operation}Result of applying Sobel kernel to detect horizontal and vertical edges. Here the test image is convolved with the kernel to detect horizontal edges at the same time another kernel is applied to the test image to detect vertical edges to detect vertical edges. Result of the convolution of these is added to get the horizontal and vertical edges in image
 
 \begin{figure}[htb]
 
 \begin{minipage}[b]{1.0\linewidth}
   \centering
-  \centerline{\includegraphics[width=8.5cm]{temp.jpg}}
+  \centerline{\includegraphics[width=8.5cm]{sobel_op.jpg}}
 %  \vspace{2.0cm}
   \centerline{Test image after applying Sobel operator}\medskip
 \end{minipage}
@@ -286,7 +287,7 @@ Following are the images after appying various transformation techniques.
 
 Main problem faced during development is choice of language. I got to know that Matlab has a drag and drop type of making GUI, but it is licensed i wanted to work with open source. The choice I was left with was c++ and python. I was not well versed in both of them. Since python syntax is easy i chose python. Implementation of  GUI created a lot of problems I did not know which python binding to use, after searching online and found that tkinter is the basic and primitive binding in python so i chose that and started working with it but after spending entire day on it nothing much was happening so i shifted to pyqt after finding a tutorial\cite{WEBSITE:9} on pyqt and completed the GUI part using pyqt. For image operations Opencv \cite{WEBSITE:3}and numpy\cite{WEBSITE:1} libraries are used though it was not easy documentation is available online.
 
- If more time was given i would have implemented convolution using vectors to reduce the computations and GUI also can improved by  making the window responsive adding short cuts to all the operations etc.,
+\\ If more time was given i would have implemented convolution using vectors to reduce the computations and GUI also can improved by  making the window responsive adding short cuts to all the operations etc.,
 
 % References should be produced using the bibtex program from suitable
 % BiBTeX files (here: strings, refs, manuals). The IEEEbib.bst bibliography
@@ -296,5 +297,8 @@ Main problem faced during development is choice of language. I got to know that 
 \bibliography{strings,refs}
 \onecolumn
 \section{APPENDIX}
+\subsection{Code using inbuilt FFT and IFFT functions }
+\lstinputlisting[language=Python]{assignment2_1.py}
+\subsection{Code  without using inbuilt FFT and IFFT functions }
 \lstinputlisting[language=Python]{assignment2.py}
 \end{document}
